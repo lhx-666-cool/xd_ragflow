@@ -5,6 +5,8 @@ export enum Routes {
   Login = '/login-next',
   Logout = '/logout',
   Home = '/home',
+  Document = '/document',
+  DocumentChat = '/document-chat',
   Datasets = '/datasets',
   DatasetBase = '/dataset',
   Dataset = `${Routes.DatasetBase}${Routes.DatasetBase}`,
@@ -150,6 +152,11 @@ const routes = [
   {
     path: '/document/:id',
     component: '@/pages/document-viewer',
+    layout: false,
+  },
+  {
+    path: `${Routes.DocumentChat}/:id`,
+    component: '@/pages/document-chat',
     layout: false,
   },
   {

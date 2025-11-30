@@ -9,10 +9,13 @@ import { DocumentType } from '@/constants/knowledge';
 import { useRemoveDocument } from '@/hooks/use-document-request';
 import { IDocumentInfo } from '@/interfaces/database/document';
 import { formatFileSize } from '@/utils/common-util';
+import { Routes } from '@/routes';
 import { formatDate } from '@/utils/date';
 import { downloadDocument } from '@/utils/file-util';
-import { Download, Eye, PenLine, Trash2 } from 'lucide-react';
-import { useCallback } from 'react';
+import { getExtension } from '@/utils/document-util';
+import { Download, Eye, MessageSquare, PenLine, Trash2 } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
+import { useNavigate } from 'umi';
 import { UseRenameDocumentShowType } from './use-rename-document';
 import { isParserRunning } from './utils';
 
@@ -31,8 +34,14 @@ export function DatasetActionCell({
   const { id, run, type } = record;
   const isRunning = isParserRunning(run);
   const isVirtualDocument = type === DocumentType.Virtual;
+  const navigate = useNavigate();
 
   const { removeDocument } = useRemoveDocument();
+
+  const extension = useMemo(() => {
+    const suffix = (record.suffix || '').replace('.', '');
+    return (suffix || getExtension(record.name)).toLowerCase();
+  }, [record.name, record.suffix]);
 
   const onDownloadDocument = useCallback(() => {
     downloadDocument({
@@ -49,8 +58,27 @@ export function DatasetActionCell({
     showRenameModal(record);
   }, [record, showRenameModal]);
 
+  const handleOpenDocumentChat = useCallback(() => {
+    if (!record.id) return;
+    const params = new URLSearchParams({
+      ext: extension || 'pdf',
+      prefix: 'document',
+      name: record.name,
+    });
+    navigate(`${Routes.DocumentChat}/${record.id}?${params.toString()}`);
+  }, [extension, navigate, record.id, record.name]);
+
   return (
     <section className="flex gap-4 items-center text-text-sub-title-invert opacity-0 group-hover:opacity-100 transition-opacity">
+      <Button
+        variant="transparent"
+        className="border-none hover:bg-bg-card text-text-primary"
+        size={'sm'}
+        disabled={isRunning}
+        onClick={handleOpenDocumentChat}
+      >
+        <MessageSquare />
+      </Button>
       <Button
         variant="transparent"
         className="border-none hover:bg-bg-card text-text-primary"
