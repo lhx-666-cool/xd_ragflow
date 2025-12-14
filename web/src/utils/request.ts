@@ -71,7 +71,7 @@ const errorHandler = (error: {
   return response ?? { data: { code: 1999 } };
 };
 
-const request: RequestMethod = extend({
+const request: RequestMethod<true> = extend({
   errorHandler,
   timeout: 300000,
   getResponse: true,
