@@ -23,6 +23,157 @@
   display: flex;
   flex-direction: column;
 }
+.viewerLayout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background-color: var(--bg-card);
+}
+.viewerContent {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--bg-card);
+}
+.sidebar {
+  width: 240px;
+  min-width: 200px;
+  border-right: 1px solid var(--border-default);
+  background-color: var(--bg-base);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebarSection {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.sidebarList {
+  margin-top: 12px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sidebarListItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.sidebarListItem:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+.sidebarListItem span {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebarListItemActive {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.tocItemButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  appearance: none;
+}
+.tocList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tocItemButton span {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tocItemButton:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+.tocItemActive {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.tocChildren {
+  margin-top: 4px;
+  padding-left: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tocChevron {
+  transition: transform 0.2s ease;
+}
+.tocChevronExpanded {
+  transform: rotate(90deg);
+}
+.tocLeafIcon {
+  flex: 0 0 auto;
+}
+.bookmarkActive {
+  color: var(--primary);
+}
+
+@media (max-width: 1024px) {
+  .viewerLayout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--border-default);
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sidebarSection {
+    flex: 1 1 200px;
+    border-bottom: none;
+    border-right: 1px solid var(--border-default);
+  }
+
+  .sidebarSection:last-child {
+    border-right: none;
+  }
+}
 
 .documentContainer {
   flex: 1;

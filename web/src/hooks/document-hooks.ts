@@ -26,6 +26,18 @@ import {
   useSetPaginationParams,
 } from './route-hook';
 
+const DOCUMENT_CHAT_CACHE_PREFIX = 'documentChatHistory:';
+
+const clearDocumentChatCache = (documentIds: string | string[]) => {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  const ids = Array.isArray(documentIds) ? documentIds : [documentIds];
+  ids.forEach((id) => {
+    try {
+      window.localStorage.removeItem(`${DOCUMENT_CHAT_CACHE_PREFIX}${id}`);
+    } catch (error) {}
+  });
+};
+
 export const useGetDocumentUrl = (documentId?: string) => {
   const getDocumentUrl = useCallback(
     (id?: string) => {
@@ -403,6 +415,7 @@ export const useRemoveNextDocument = () => {
       if (data.code === 0) {
         message.success(i18n.t('message.deleted'));
         queryClient.invalidateQueries({ queryKey: ['fetchDocumentList'] });
+        clearDocumentChatCache(documentIds);
       }
       return data.code;
     },
@@ -420,6 +433,10 @@ export const useDeleteDocument = () => {
     mutationKey: ['deleteDocument'],
     mutationFn: async (documentIds: string[]) => {
       const data = await kbService.document_delete({ doc_ids: documentIds });
+      const code = data?.data?.code ?? data?.code;
+      if (code === 0) {
+        clearDocumentChatCache(documentIds);
+      }
 
       return data;
     },

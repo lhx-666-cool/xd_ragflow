@@ -17,6 +17,8 @@ import json
 import os.path
 import pathlib
 import re
+import time
+import hashlib
 from pathlib import Path
 
 import flask
@@ -544,10 +546,145 @@ def rename():
         return server_error_response(e)
 
 
+def _generate_doc_signature(doc_id: str, expire_time: int) -> str:
+    """生成文档下载签名"""
+    secret = settings.SECRET_KEY or "ragflow-default-secret"
+    raw = f"{doc_id}:{expire_time}:{secret}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+
+def _verify_doc_signature(doc_id: str, expire_time: int, signature: str) -> bool:
+    """验证文档下载签名"""
+    if time.time() > expire_time:
+        return False
+    expected_sig = _generate_doc_signature(doc_id, expire_time)
+    return signature == expected_sig
+
+
+@manager.route("/create_signed_url", methods=["POST"])  # noqa: F821
+@login_required
+@validate_request("doc_id")
+def create_signed_url():
+    """
+    生成带签名的文档下载URL，供第三方下载
+    ---
+    tags:
+      - Document
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          required:
+            - doc_id
+          properties:
+            doc_id:
+              type: string
+              description: 文档ID
+            expire_minutes:
+              type: integer
+              description: 过期时间（分钟），默认30分钟，最大1440分钟（24小时）
+    responses:
+      200:
+        description: 签名URL生成成功
+        schema:
+          type: object
+          properties:
+            signed_url:
+              type: string
+              description: 带签名的完整下载URL
+            expire_time:
+              type: integer
+              description: 过期时间戳（秒）
+            expire_minutes:
+              type: integer
+              description: 有效期（分钟）
+    """
+    req = request.json
+    doc_id = req.get("doc_id")
+    expire_minutes = min(int(req.get("expire_minutes", 30)), 1440)  # 最大24小时
+
+    # 验证用户是否有权限访问该文档
+    if not DocumentService.accessible(doc_id, current_user.id):
+        return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
+
+    try:
+        e, doc = DocumentService.get_by_id(doc_id)
+        if not e:
+            return get_data_error_result(message="Document not found!")
+
+        # 生成过期时间和签名
+        expire_time = int(time.time()) + expire_minutes * 60
+        signature = _generate_doc_signature(doc_id, expire_time)
+
+        # 构建签名URL
+        base_url = request.host_url.rstrip("/")
+        signed_url = f"{base_url}/v1/document/get/{doc_id}?expire={expire_time}&sig={signature}"
+
+        return get_json_result(
+            data={
+                "signed_url": signed_url,
+                "expire_time": expire_time,
+                "expire_minutes": expire_minutes,
+                "doc_name": doc.name,
+            }
+        )
+    except Exception as e:
+        return server_error_response(e)
+
+
 @manager.route("/get/<doc_id>", methods=["GET"])  # noqa: F821
 # @login_required
 def get(doc_id):
+    """
+    下载文档文件
+    ---
+    tags:
+      - Document
+    parameters:
+      - name: doc_id
+        in: path
+        type: string
+        required: true
+        description: 文档ID
+      - name: expire
+        in: query
+        type: integer
+        required: false
+        description: 过期时间戳（秒），与sig参数配合使用
+      - name: sig
+        in: query
+        type: string
+        required: false
+        description: 签名，与expire参数配合使用
+    responses:
+      200:
+        description: 文件内容
+      401:
+        description: 签名无效或已过期
+      404:
+        description: 文档未找到
+    """
     try:
+        # 检查是否有签名参数
+        expire_str = request.args.get("expire")
+        signature = request.args.get("sig")
+
+        # 如果提供了签名参数，进行验证
+        if expire_str and signature:
+            try:
+                expire_time = int(expire_str)
+            except ValueError:
+                return get_json_result(data=False, message="Invalid expire parameter.", code=settings.RetCode.ARGUMENT_ERROR)
+
+            if not _verify_doc_signature(doc_id, expire_time, signature):
+                return get_json_result(data=False, message="Invalid or expired signature.", code=settings.RetCode.AUTHENTICATION_ERROR)
+        # 如果没有签名参数，检查是否有其他认证方式（保持向后兼容）
+        # 注意：为了安全起见，建议在生产环境启用下面的认证检查
+        # else:
+        #     if not current_user.is_authenticated:
+        #         return get_json_result(data=False, message="Authentication required.", code=settings.RetCode.AUTHENTICATION_ERROR)
+
         e, doc = DocumentService.get_by_id(doc_id)
         if not e:
             return get_data_error_result(message="Document not found!")
@@ -572,7 +709,6 @@ def get(doc_id):
 @login_required
 @validate_request("doc_id")
 def change_parser():
-
     req = request.json
     if not DocumentService.accessible(req["doc_id"], current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)

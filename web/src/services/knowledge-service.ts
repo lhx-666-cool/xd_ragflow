@@ -269,4 +269,23 @@ export function deletePipelineTask({
   return request.delete(api.unbindPipelineTask({ kb_id, type }));
 }
 
+/**
+ * 生成带签名的文档下载URL，供第三方下载
+ * @param docId 文档ID
+ * @param expireMinutes 过期时间（分钟），默认30分钟
+ */
+export function createDocumentSignedUrl(docId: string, expireMinutes = 30) {
+  return request.post<{
+    signed_url: string;
+    expire_time: number;
+    expire_minutes: number;
+    doc_name: string;
+  }>(api.document_create_signed_url, {
+    data: {
+      doc_id: docId,
+      expire_minutes: expireMinutes,
+    },
+  });
+}
+
 export default kbService;

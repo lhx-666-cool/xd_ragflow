@@ -87,6 +87,7 @@ export default {
   document_thumbnails: `${api_host}/document/thumbnails`,
   get_document_file: `${api_host}/document/get`,
   document_upload: `${api_host}/document/upload`,
+  document_create_signed_url: `${api_host}/document/create_signed_url`,
   web_crawl: `${api_host}/document/web_crawl`,
   document_infos: `${api_host}/document/infos`,
   upload_and_parse: `${api_host}/document/upload_and_parse`,
