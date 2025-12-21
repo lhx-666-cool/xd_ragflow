@@ -19,14 +19,14 @@ const menuItems = [
   { icon: User, label: 'Profile', key: Routes.Profile },
   { icon: Users, label: 'Team', key: Routes.Team },
   { icon: Box, label: 'Model Providers', key: Routes.Model },
-  { icon: Unplug, label: 'API', key: Routes.Api },
+  // { icon: Unplug, label: 'API', key: Routes.Api }, // Hidden: API menu item
   // {
   //   icon: MessageSquareQuote,
   //   label: 'Prompt Templates',
   //   key: Routes.Profile,
   // },
   // { icon: TextSearch, label: 'Retrieval Templates', key: Routes.Profile },
-  { icon: Cog, label: 'System', key: Routes.System },
+  // { icon: Cog, label: 'System', key: Routes.System }, // Hidden: System menu item
   // { icon: Banknote, label: 'Plan', key: Routes.Plan },
   { icon: Banknote, label: 'MCP', key: Routes.Mcp },
 ];
