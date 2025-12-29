@@ -16,10 +16,13 @@ import { BeginQuery } from '../interface';
 import useGraphStore from '../store';
 import { buildBeginQueryWithObject } from '../utils';
 
+type RunSheetProps = IModalProps<any> & { canEdit?: boolean };
+
 const RunSheet = ({
   hideModal,
   showModal: showChatModal,
-}: IModalProps<any>) => {
+  canEdit = true,
+}: RunSheetProps) => {
   const { t } = useTranslation();
   const { updateNodeForm, getNode } = useGraphStore((state) => state);
 
@@ -27,6 +30,7 @@ const RunSheet = ({
 
   const { handleRun, loading } = useSaveGraphBeforeOpeningDebugDrawer(
     showChatModal!,
+    canEdit,
   );
 
   const handleRunAgent = useCallback(

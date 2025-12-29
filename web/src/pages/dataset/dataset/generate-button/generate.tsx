@@ -255,10 +255,11 @@ export type IGenerateLogProps = IGenerateLogButtonProps & {
   type?: GenerateType;
   className?: string;
   onDelete?: () => void;
+  readOnly?: boolean;
 };
 export const GenerateLogButton = (props: IGenerateLogProps) => {
   const { t } = useTranslation();
-  const { message, finish_at, type, onDelete } = props;
+  const { message, finish_at, type, onDelete, readOnly = false } = props;
 
   const { handleUnbindTask } = useUnBindTask();
 
@@ -334,15 +335,17 @@ export const GenerateLogButton = (props: IGenerateLogProps) => {
               {message || t('knowledgeDetails.generatedOn')}
               {formatDate(finish_at)}
             </div>
-            <Trash2
-              size={14}
-              className="cursor-pointer"
-              onClick={(e) => {
-                console.log('delete');
-                handleDelete();
-                e.stopPropagation();
-              }}
-            />
+            {readOnly || (
+              <Trash2
+                size={14}
+                className="cursor-pointer"
+                onClick={(e) => {
+                  console.log('delete');
+                  handleDelete();
+                  e.stopPropagation();
+                }}
+              />
+            )}
           </>
         )}
         {!finish_at && <div>{t('knowledgeDetails.notGenerated')}</div>}

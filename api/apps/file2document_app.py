@@ -16,6 +16,11 @@
 
 from pathlib import Path
 
+from api.common.check_team_permission import (
+    check_doc_team_write_permission,
+    check_file_team_write_permission,
+    check_kb_team_write_permission,
+)
 from api.db.services.file2document_service import File2DocumentService
 from api.db.services.file_service import FileService
 
@@ -30,7 +35,7 @@ from api import settings
 from api.utils.api_utils import get_json_result
 
 
-@manager.route('/convert', methods=['POST'])  # noqa: F821
+@manager.route("/convert", methods=["POST"])  # noqa: F821
 @login_required
 @validate_request("file_ids", "kb_ids")
 def convert():
@@ -46,6 +51,12 @@ def convert():
             file = files_set[file_id]
             if not file:
                 return get_data_error_result(message="File not found!")
+            if not check_file_team_write_permission(file, current_user.id):
+                return get_json_result(
+                    data=False,
+                    message="No authorization.",
+                    code=settings.RetCode.AUTHENTICATION_ERROR,
+                )
             file_ids_list = [file_id]
             if file.type == FileType.FOLDER.value:
                 file_ids_list = FileService.get_all_innermost_file_ids(file_id, [])
@@ -54,6 +65,12 @@ def convert():
                 # delete
                 for inform in informs:
                     doc_id = inform.document_id
+                    if not check_doc_team_write_permission(doc_id, current_user.id):
+                        return get_json_result(
+                            data=False,
+                            message="No authorization.",
+                            code=settings.RetCode.AUTHENTICATION_ERROR,
+                        )
                     e, doc = DocumentService.get_by_id(doc_id)
                     if not e:
                         return get_data_error_result(message="Document not found!")
@@ -61,38 +78,51 @@ def convert():
                     if not tenant_id:
                         return get_data_error_result(message="Tenant not found!")
                     if not DocumentService.remove_document(doc, tenant_id):
-                        return get_data_error_result(
-                            message="Database error (Document removal)!")
+                        return get_data_error_result(message="Database error (Document removal)!")
                 File2DocumentService.delete_by_file_id(id)
 
                 # insert
                 for kb_id in kb_ids:
                     e, kb = KnowledgebaseService.get_by_id(kb_id)
                     if not e:
-                        return get_data_error_result(
-                            message="Can't find this knowledgebase!")
+                        return get_data_error_result(message="Can't find this knowledgebase!")
+                    if not check_kb_team_write_permission(kb, current_user.id):
+                        return get_json_result(
+                            data=False,
+                            message="No authorization.",
+                            code=settings.RetCode.AUTHENTICATION_ERROR,
+                        )
                     e, file = FileService.get_by_id(id)
                     if not e:
-                        return get_data_error_result(
-                            message="Can't find this file!")
+                        return get_data_error_result(message="Can't find this file!")
+                    if not check_file_team_write_permission(file, current_user.id):
+                        return get_json_result(
+                            data=False,
+                            message="No authorization.",
+                            code=settings.RetCode.AUTHENTICATION_ERROR,
+                        )
 
-                    doc = DocumentService.insert({
-                        "id": get_uuid(),
-                        "kb_id": kb.id,
-                        "parser_id": FileService.get_parser(file.type, file.name, kb.parser_id),
-                        "parser_config": kb.parser_config,
-                        "created_by": current_user.id,
-                        "type": file.type,
-                        "name": file.name,
-                        "suffix": Path(file.name).suffix.lstrip("."),
-                        "location": file.location,
-                        "size": file.size
-                    })
-                    file2document = File2DocumentService.insert({
-                        "id": get_uuid(),
-                        "file_id": id,
-                        "document_id": doc.id,
-                    })
+                    doc = DocumentService.insert(
+                        {
+                            "id": get_uuid(),
+                            "kb_id": kb.id,
+                            "parser_id": FileService.get_parser(file.type, file.name, kb.parser_id),
+                            "parser_config": kb.parser_config,
+                            "created_by": current_user.id,
+                            "type": file.type,
+                            "name": file.name,
+                            "suffix": Path(file.name).suffix.lstrip("."),
+                            "location": file.location,
+                            "size": file.size,
+                        }
+                    )
+                    file2document = File2DocumentService.insert(
+                        {
+                            "id": get_uuid(),
+                            "file_id": id,
+                            "document_id": doc.id,
+                        }
+                    )
 
                     file2documents.append(file2document.to_json())
         return get_json_result(data=file2documents)
@@ -100,15 +130,14 @@ def convert():
         return server_error_response(e)
 
 
-@manager.route('/rm', methods=['POST'])  # noqa: F821
+@manager.route("/rm", methods=["POST"])  # noqa: F821
 @login_required
 @validate_request("file_ids")
 def rm():
     req = request.json
     file_ids = req["file_ids"]
     if not file_ids:
-        return get_json_result(
-            data=False, message='Lack of "Files ID"', code=settings.RetCode.ARGUMENT_ERROR)
+        return get_json_result(data=False, message='Lack of "Files ID"', code=settings.RetCode.ARGUMENT_ERROR)
     try:
         for file_id in file_ids:
             informs = File2DocumentService.get_by_file_id(file_id)
@@ -117,8 +146,14 @@ def rm():
             for inform in informs:
                 if not inform:
                     return get_data_error_result(message="Inform not found!")
-                File2DocumentService.delete_by_file_id(file_id)
                 doc_id = inform.document_id
+                if not check_doc_team_write_permission(doc_id, current_user.id):
+                    return get_json_result(
+                        data=False,
+                        message="No authorization.",
+                        code=settings.RetCode.AUTHENTICATION_ERROR,
+                    )
+                File2DocumentService.delete_by_file_id(file_id)
                 e, doc = DocumentService.get_by_id(doc_id)
                 if not e:
                     return get_data_error_result(message="Document not found!")
@@ -126,8 +161,7 @@ def rm():
                 if not tenant_id:
                     return get_data_error_result(message="Tenant not found!")
                 if not DocumentService.remove_document(doc, tenant_id):
-                    return get_data_error_result(
-                        message="Database error (Document removal)!")
+                    return get_data_error_result(message="Database error (Document removal)!")
         return get_json_result(data=True)
     except Exception as e:
         return server_error_response(e)

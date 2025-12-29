@@ -59,9 +59,11 @@ const Prompt = 'parser_config.raptor.prompt';
 const RaptorFormFields = ({
   data,
   onDelete,
+  readOnly = false,
 }: {
   data: IGenerateLogButtonProps;
   onDelete: () => void;
+  readOnly?: boolean;
 }) => {
   const form = useFormContext();
   const { t } = useTranslate('knowledgeConfiguration');
@@ -99,6 +101,7 @@ const RaptorFormFields = ({
                       className="w-full text-text-secondary"
                       status={1}
                       type={GenerateType.Raptor}
+                      readOnly={readOnly}
                     />
                   </FormControl>
                 </div>

@@ -97,6 +97,18 @@ export const EmptyDsl = {
   },
 };
 
+const resolveAgentErrorMessage = (ret: any) => {
+  const messageText = ret?.data?.message;
+  if (typeof messageText === 'string' && messageText.trim()) {
+    return messageText;
+  }
+  const dataText = ret?.data?.data;
+  if (typeof dataText === 'string' && dataText.trim()) {
+    return dataText;
+  }
+  return i18n.t('message.requestError');
+};
+
 export const useFetchAgentTemplates = () => {
   const { data } = useQuery<IFlowTemplate[]>({
     queryKey: [AgentApiAction.FetchAgentTemplates],
@@ -201,7 +213,7 @@ export const useUpdateAgentSetting = () => {
           queryKey: [AgentApiAction.FetchAgentListByPage],
         });
       } else {
-        message.error(ret?.data?.data);
+        message.error(resolveAgentErrorMessage(ret));
       }
       return ret?.data?.code;
     },
@@ -464,7 +476,7 @@ export const useTestDbConnect = () => {
       if (ret?.data?.code === 0) {
         message.success(ret?.data?.data);
       } else {
-        message.error(ret?.data?.data);
+        message.error(resolveAgentErrorMessage(ret));
       }
       return ret;
     },
@@ -649,7 +661,7 @@ export const useSetAgentSetting = () => {
           queryKey: [AgentApiAction.FetchAgentDetail],
         });
       } else {
-        message.error(ret?.data?.data);
+        message.error(resolveAgentErrorMessage(ret));
       }
       return ret?.data?.code;
     },
@@ -711,7 +723,7 @@ export const useCancelDataflow = () => {
       if (ret?.data?.code === 0) {
         message.success('success');
       } else {
-        message.error(ret?.data?.data);
+        message.error(resolveAgentErrorMessage(ret));
       }
       return ret?.data?.code;
     },

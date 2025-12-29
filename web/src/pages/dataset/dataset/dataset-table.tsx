@@ -42,7 +42,9 @@ export type DatasetTableProps = Pick<
   ReturnType<typeof useFetchDocumentList>,
   'documents' | 'setPagination' | 'pagination' | 'loading'
 > &
-  Pick<UseRowSelectionType, 'rowSelection' | 'setRowSelection'>;
+  Pick<UseRowSelectionType, 'rowSelection' | 'setRowSelection'> & {
+    readOnly?: boolean;
+  };
 
 export function DatasetTable({
   documents,
@@ -50,6 +52,7 @@ export function DatasetTable({
   setPagination,
   rowSelection,
   setRowSelection,
+  readOnly = false,
 }: DatasetTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -91,6 +94,7 @@ export function DatasetTable({
     showRenameModal,
     showSetMetaModal,
     showLog,
+    readOnly,
   });
 
   const currentPagination = useMemo(() => {
@@ -110,7 +114,7 @@ export function DatasetTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange: readOnly ? undefined : setRowSelection,
     manualPagination: true, //we're doing manual "server-side" pagination
     state: {
       sorting,

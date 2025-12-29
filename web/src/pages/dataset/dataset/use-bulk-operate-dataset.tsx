@@ -18,8 +18,10 @@ export function useBulkOperateDataset({
   rowSelection,
   setRowSelection,
   documents,
+  readOnly = false,
 }: Pick<UseRowSelectionType, 'rowSelection' | 'setRowSelection'> & {
   documents: IDocumentInfo[];
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const { selectedIds: selectedRowKeys } = useSelectedIds(
@@ -89,10 +91,12 @@ export function useBulkOperateDataset({
     return removeDocument(deletedKeys);
   }, [selectedRowKeys, removeDocument, documents, t]);
 
-  const list = [
-    {
-      id: 'enabled',
-      label: t('knowledgeDetails.enabled'),
+  const list = readOnly
+    ? []
+    : [
+        {
+          id: 'enabled',
+          label: t('knowledgeDetails.enabled'),
       icon: <CircleCheck />,
       onClick: handleEnableClick,
     },
@@ -124,8 +128,8 @@ export function useBulkOperateDataset({
           setRowSelection({});
         }
       },
-    },
-  ];
+        },
+      ];
 
   return { list };
 }

@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { NotebookPen } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChatSheet } from '../chat/chat-sheet';
 import {
@@ -108,9 +108,10 @@ const edgeTypes = {
 interface IProps {
   drawerVisible: boolean;
   hideDrawer(): void;
+  readOnly?: boolean;
 }
 
-function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
+function AgentCanvas({ drawerVisible, hideDrawer, readOnly = false }: IProps) {
   const { t } = useTranslation();
   const {
     nodes,
@@ -143,6 +144,7 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
   } = useShowDrawer({
     drawerVisible,
     hideDrawer,
+    readOnly,
   });
 
   const {
@@ -224,7 +226,9 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
       clearActiveDropdown();
     }
     if (imgVisible) {
-      addNoteNode(mouse);
+      if (!readOnly) {
+        addNoteNode(mouse);
+      }
       hideImage();
     }
   }, [
@@ -239,6 +243,23 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
     clearActiveDropdown,
     removePlaceholderNode,
   ]);
+
+  const showFormDrawerForContext = useCallback(
+    (e: MouseEvent<Element>, nodeId: string) => {
+      if (readOnly) return;
+      showFormDrawer(e, nodeId);
+    },
+    [readOnly, showFormDrawer],
+  );
+  const addCanvasNodeForContext = useCallback(
+    (...args: Parameters<typeof addCanvasNode>) => {
+      if (readOnly) {
+        return () => undefined;
+      }
+      return addCanvasNode(...args);
+    },
+    [addCanvasNode, readOnly],
+  );
 
   return (
     <div className={cn(styles.canvasWrapper, 'px-5 pb-5')}>
@@ -275,39 +296,47 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
           </marker>
         </defs>
       </svg>
-      <AgentInstanceContext.Provider value={{ addCanvasNode, showFormDrawer }}>
+      <AgentInstanceContext.Provider
+        value={{
+          addCanvasNode: addCanvasNodeForContext,
+          showFormDrawer: showFormDrawerForContext,
+        }}
+      >
         <ReactFlow
           connectionMode={ConnectionMode.Loose}
           nodes={nodes}
-          onNodesChange={onNodesChange}
+          onNodesChange={readOnly ? undefined : onNodesChange}
           edges={edges}
-          onEdgesChange={onEdgesChange}
+          onEdgesChange={readOnly ? undefined : onEdgesChange}
           fitView
-          onConnect={handleConnect}
+          onConnect={readOnly ? undefined : handleConnect}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
-          onDrop={onDrop}
-          onConnectStart={onConnectStart}
-          onConnectEnd={onConnectEnd}
+          onDrop={readOnly ? undefined : onDrop}
+          onConnectStart={readOnly ? undefined : onConnectStart}
+          onConnectEnd={readOnly ? undefined : onConnectEnd}
           onMove={onMove}
-          onDragOver={onDragOver}
-          onNodeClick={onNodeClick}
+          onDragOver={readOnly ? undefined : onDragOver}
+          onNodeClick={readOnly ? undefined : onNodeClick}
           onPaneClick={onPaneClick}
           onInit={setReactFlowInstance}
-          onSelectionChange={onSelectionChange}
+          onSelectionChange={readOnly ? undefined : onSelectionChange}
           nodeOrigin={[0.5, 0]}
-          isValidConnection={isValidConnection}
-          onEdgeMouseEnter={onEdgeMouseEnter}
-          onEdgeMouseLeave={onEdgeMouseLeave}
+          isValidConnection={readOnly ? undefined : isValidConnection}
+          onEdgeMouseEnter={readOnly ? undefined : onEdgeMouseEnter}
+          onEdgeMouseLeave={readOnly ? undefined : onEdgeMouseLeave}
           className="h-full"
           colorMode={theme}
+          nodesDraggable={!readOnly}
+          nodesConnectable={!readOnly}
+          elementsSelectable={!readOnly}
           defaultEdgeOptions={{
             type: 'buttonEdge',
             markerEnd: 'logo',
             zIndex: 1001, // https://github.com/xyflow/xyflow/discussions/3498
           }}
-          deleteKeyCode={['Delete', 'Backspace']}
-          onBeforeDelete={handleBeforeDelete}
+          deleteKeyCode={readOnly ? [] : ['Delete', 'Backspace']}
+          onBeforeDelete={readOnly ? undefined : handleBeforeDelete}
         >
           <AgentBackground></AgentBackground>
           <Spotlight className="z-0" opcity={0.7} coverage={70} />
@@ -316,10 +345,13 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
             orientation="horizontal"
             className="bg-bg-base px-4 py-2 h-auto w-auto [&>button]:bg-transparent [&>button]:border-0 [&>button]:text-text-primary [&>button]:hover:bg-bg-base-hover [&>button]:hover:text-text-primary [&>button]:active:bg-bg-base-active [&>button]:p-0 [&>button]:size-4 gap-2.5 rounded-md"
           >
-            <ControlButton>
+            <ControlButton disabled={readOnly}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <NotebookPen className="!fill-none" onClick={showImage} />
+                  <NotebookPen
+                    className="!fill-none"
+                    onClick={readOnly ? undefined : showImage}
+                  />
                 </TooltipTrigger>
                 <TooltipContent>{t('flow.note')}</TooltipContent>
               </Tooltip>
@@ -359,7 +391,10 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
       ></NotebookPen>
       {formDrawerVisible && (
         <AgentInstanceContext.Provider
-          value={{ addCanvasNode, showFormDrawer }}
+          value={{
+            addCanvasNode: addCanvasNodeForContext,
+            showFormDrawer: showFormDrawerForContext,
+          }}
         >
           <FormSheet
             node={clickedNode}
@@ -387,6 +422,7 @@ function AgentCanvas({ drawerVisible, hideDrawer }: IProps) {
         <RunSheet
           hideModal={hideRunOrChatDrawer}
           showModal={showChatModal}
+          canEdit={!readOnly}
         ></RunSheet>
       )}
       {logSheetVisible && (

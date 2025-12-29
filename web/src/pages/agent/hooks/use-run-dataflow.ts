@@ -10,8 +10,10 @@ import { useSaveGraph } from './use-save-graph';
 export function useRunDataflow({
   showLogSheet,
   setMessageId,
+  canEdit = true,
 }: {
   showLogSheet: () => void;
+  canEdit?: boolean;
 } & Pick<UseFetchLogReturnType, 'setMessageId'>) {
   const { send } = useSendMessageBySSE(api.runCanvas);
   const { id } = useParams();
@@ -21,9 +23,11 @@ export function useRunDataflow({
 
   const run = useCallback(
     async (fileResponseData: Record<string, any>) => {
-      const saveRet = await saveGraph();
-      const success = saveRet?.code === 0;
-      if (!success) return;
+      if (canEdit) {
+        const saveRet = await saveGraph();
+        const success = saveRet?.code === 0;
+        if (!success) return;
+      }
 
       showLogSheet();
       const res = await send({
@@ -46,7 +50,15 @@ export function useRunDataflow({
         message.error(get(res, 'data.message', ''));
       }
     },
-    [id, saveGraph, send, setMessageId, setUploadedFileData, showLogSheet],
+    [
+      canEdit,
+      id,
+      saveGraph,
+      send,
+      setMessageId,
+      setUploadedFileData,
+      showLogSheet,
+    ],
   );
 
   return { run, loading: loading, uploadedFileData };

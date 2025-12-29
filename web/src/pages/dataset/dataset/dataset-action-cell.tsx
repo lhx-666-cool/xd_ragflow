@@ -30,11 +30,13 @@ const FunctionMap = {
 export function DatasetActionCell({
   record,
   showRenameModal,
-}: { record: IDocumentInfo } & UseRenameDocumentShowType) {
+  readOnly = false,
+}: { record: IDocumentInfo; readOnly?: boolean } & UseRenameDocumentShowType) {
   const { id, run, type } = record;
   const isRunning = isParserRunning(run);
   const isVirtualDocument = type === DocumentType.Virtual;
   const navigate = useNavigate();
+  const canEdit = !readOnly;
 
   const { removeDocument } = useRemoveDocument();
 
@@ -55,8 +57,9 @@ export function DatasetActionCell({
   }, [id, removeDocument]);
 
   const handleRename = useCallback(() => {
+    if (!canEdit) return;
     showRenameModal(record);
-  }, [record, showRenameModal]);
+  }, [canEdit, record, showRenameModal]);
 
   const handleOpenDocumentChat = useCallback(() => {
     if (!record.id) return;
@@ -83,7 +86,7 @@ export function DatasetActionCell({
         variant="transparent"
         className="border-none hover:bg-bg-card text-text-primary"
         size={'sm'}
-        disabled={isRunning}
+        disabled={isRunning || readOnly}
         onClick={handleRename}
       >
         <PenLine />
@@ -131,16 +134,27 @@ export function DatasetActionCell({
           <Download />
         </Button>
       )}
-      <ConfirmDeleteDialog onOk={handleRemove}>
+      {canEdit ? (
+        <ConfirmDeleteDialog onOk={handleRemove}>
+          <Button
+            variant="transparent"
+            className="border-none hover:bg-bg-card text-text-primary"
+            size={'sm'}
+            disabled={isRunning}
+          >
+            <Trash2 />
+          </Button>
+        </ConfirmDeleteDialog>
+      ) : (
         <Button
           variant="transparent"
           className="border-none hover:bg-bg-card text-text-primary"
           size={'sm'}
-          disabled={isRunning}
+          disabled
         >
           <Trash2 />
         </Button>
-      </ConfirmDeleteDialog>
+      )}
     </section>
   );
 }

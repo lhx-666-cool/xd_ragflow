@@ -54,14 +54,17 @@ type GraphRagItemsProps = {
   className?: string;
   data: IGenerateLogButtonProps;
   onDelete?: () => void;
+  readOnly?: boolean;
 };
 
 export function UseGraphRagFormField({
   data,
   onDelete,
+  readOnly = false,
 }: {
   data: IGenerateLogButtonProps;
   onDelete?: () => void;
+  readOnly?: boolean;
 }) {
   const form = useFormContext();
   const { t } = useTranslate('knowledgeConfiguration');
@@ -91,6 +94,7 @@ export function UseGraphRagFormField({
                   className="w-full text-text-secondary"
                   status={1}
                   type={GenerateType.KnowledgeGraph}
+                  readOnly={readOnly}
                 />
               </FormControl>
             </div>
@@ -111,6 +115,7 @@ const GraphRagItems = ({
   className = 'p-10',
   data,
   onDelete,
+  readOnly = false,
 }: GraphRagItemsProps) => {
   const { t } = useTranslate('knowledgeConfiguration');
   const form = useFormContext();
@@ -139,6 +144,7 @@ const GraphRagItems = ({
       <UseGraphRagFormField
         data={data}
         onDelete={onDelete}
+        readOnly={readOnly}
       ></UseGraphRagFormField>
       {useRaptor && (
         <>

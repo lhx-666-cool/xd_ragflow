@@ -31,12 +31,19 @@ export const useSaveGraph = (showMessage: boolean = true) => {
   return { saveGraph, loading };
 };
 
-export const useSaveGraphBeforeOpeningDebugDrawer = (show: () => void) => {
+export const useSaveGraphBeforeOpeningDebugDrawer = (
+  show: () => void,
+  canEdit: boolean = true,
+) => {
   const { saveGraph, loading } = useSaveGraph();
   const { resetAgent } = useResetAgent();
 
   const handleRun = useCallback(
     async (nextNodes?: RAGFlowNodeType[]) => {
+      if (!canEdit) {
+        show();
+        return;
+      }
       const saveRet = await saveGraph(nextNodes);
       if (saveRet?.code === 0) {
         // Call the reset api before opening the run drawer each time
@@ -47,13 +54,16 @@ export const useSaveGraphBeforeOpeningDebugDrawer = (show: () => void) => {
         }
       }
     },
-    [saveGraph, resetAgent, show],
+    [canEdit, saveGraph, resetAgent, show],
   );
 
   return { handleRun, loading };
 };
 
-export const useWatchAgentChange = (chatDrawerVisible: boolean) => {
+export const useWatchAgentChange = (
+  chatDrawerVisible: boolean,
+  canEdit: boolean = true,
+) => {
   const [time, setTime] = useState<string>();
   const nodes = useGraphStore((state) => state.nodes);
   const edges = useGraphStore((state) => state.edges);
@@ -69,11 +79,11 @@ export const useWatchAgentChange = (chatDrawerVisible: boolean) => {
   }, [flowDetail, setSaveTime]);
 
   const saveAgent = useCallback(async () => {
-    if (!chatDrawerVisible) {
+    if (canEdit && !chatDrawerVisible) {
       const ret = await saveGraph();
       setSaveTime(ret.data.update_time);
     }
-  }, [chatDrawerVisible, saveGraph, setSaveTime]);
+  }, [canEdit, chatDrawerVisible, saveGraph, setSaveTime]);
 
   useDebounceEffect(
     () => {

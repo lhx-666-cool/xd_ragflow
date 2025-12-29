@@ -23,13 +23,17 @@ import { UseSaveMetaShowType } from './use-save-meta';
 
 type UseDatasetTableColumnsType = UseChangeDocumentParserShowType &
   UseRenameDocumentShowType &
-  UseSaveMetaShowType & { showLog: (record: IDocumentInfo) => void };
+  UseSaveMetaShowType & {
+    showLog: (record: IDocumentInfo) => void;
+    readOnly?: boolean;
+  };
 
 export function useDatasetTableColumns({
   showChangeParserModal,
   showRenameModal,
   showSetMetaModal,
   showLog,
+  readOnly = false,
 }: UseDatasetTableColumnsType) {
   const { t } = useTranslation('translation', {
     keyPrefix: 'knowledgeDetails',
@@ -43,18 +47,26 @@ export function useDatasetTableColumns({
       id: 'select',
       header: ({ table }) => (
         <Checkbox
+          disabled={readOnly}
           checked={
             table.getIsAllPageRowsSelected() ||
             (table.getIsSomePageRowsSelected() && 'indeterminate')
           }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          onCheckedChange={(value) => {
+            if (readOnly) return;
+            table.toggleAllPageRowsSelected(!!value);
+          }}
           aria-label="Select all"
         />
       ),
       cell: ({ row }) => (
         <Checkbox
+          disabled={readOnly}
           checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onCheckedChange={(value) => {
+            if (readOnly) return;
+            row.toggleSelected(!!value);
+          }}
           aria-label="Select row"
         />
       ),
@@ -128,7 +140,9 @@ export function useDatasetTableColumns({
         return (
           <Switch
             checked={row.getValue('status') === '1'}
+            disabled={readOnly}
             onCheckedChange={(e) => {
+              if (readOnly) return;
               setDocumentStatus({ status: e, documentId: id });
             }}
           />
@@ -153,6 +167,7 @@ export function useDatasetTableColumns({
             showChangeParserModal={showChangeParserModal}
             showSetMetaModal={showSetMetaModal}
             showLog={showLog}
+            readOnly={readOnly}
           ></ParsingStatusCell>
         );
       },
@@ -168,6 +183,7 @@ export function useDatasetTableColumns({
           <DatasetActionCell
             record={record}
             showRenameModal={showRenameModal}
+            readOnly={readOnly}
           ></DatasetActionCell>
         );
       },

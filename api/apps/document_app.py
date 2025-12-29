@@ -26,7 +26,10 @@ from flask import request
 from flask_login import current_user, login_required
 
 from api import settings
-from api.common.check_team_permission import check_kb_team_permission
+from api.common.check_team_permission import (
+    check_doc_team_write_permission,
+    check_kb_team_write_permission,
+)
 from api.constants import FILE_NAME_LEN_LIMIT, IMG_BASE64_PREFIX
 from api.db import VALID_FILE_TYPES, VALID_TASK_STATUS, FileSource, FileType, ParserType, TaskStatus
 from api.db.db_models import File, Task
@@ -71,7 +74,7 @@ def upload():
     e, kb = KnowledgebaseService.get_by_id(kb_id)
     if not e:
         raise LookupError("Can't find this knowledgebase!")
-    if not check_kb_team_permission(kb, current_user.id):
+    if not check_kb_team_write_permission(kb, current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
 
     err, files = FileService.upload_document(kb, file_objs, current_user.id)
@@ -99,7 +102,7 @@ def web_crawl():
     e, kb = KnowledgebaseService.get_by_id(kb_id)
     if not e:
         raise LookupError("Can't find this knowledgebase!")
-    if check_kb_team_permission(kb, current_user.id):
+    if not check_kb_team_write_permission(kb, current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
 
     blob = html2pdf(url)
@@ -169,6 +172,13 @@ def create():
         e, kb = KnowledgebaseService.get_by_id(kb_id)
         if not e:
             return get_data_error_result(message="Can't find this knowledgebase!")
+
+        if not check_kb_team_write_permission(kb, current_user.id):
+            return get_json_result(
+                data=False,
+                message="No authorization.",
+                code=settings.RetCode.AUTHENTICATION_ERROR,
+            )
 
         if DocumentService.query(name=req["name"], kb_id=kb_id):
             return get_data_error_result(message="Duplicated document name in the same knowledgebase.")
@@ -352,6 +362,9 @@ def change_status():
         if not DocumentService.accessible(doc_id, current_user.id):
             result[doc_id] = {"error": "No authorization."}
             continue
+        if not check_doc_team_write_permission(doc_id, current_user.id):
+            result[doc_id] = {"error": "No authorization."}
+            continue
 
         try:
             e, doc = DocumentService.get_by_id(doc_id)
@@ -386,6 +399,12 @@ def rm():
         doc_ids = [doc_ids]
 
     for doc_id in doc_ids:
+        if not check_doc_team_write_permission(doc_id, current_user.id):
+            return get_json_result(
+                data=False,
+                message="No authorization.",
+                code=settings.RetCode.AUTHENTICATION_ERROR,
+            )
         if not DocumentService.accessible4deletion(doc_id, current_user.id):
             return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
 
@@ -442,6 +461,8 @@ def run():
     req = request.json
     for doc_id in req["doc_ids"]:
         if not DocumentService.accessible(doc_id, current_user.id):
+            return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
+        if not check_doc_team_write_permission(doc_id, current_user.id):
             return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
     try:
         kb_table_num_map = {}
@@ -503,7 +524,7 @@ def run():
 @validate_request("doc_id", "name")
 def rename():
     req = request.json
-    if not DocumentService.accessible(req["doc_id"], current_user.id):
+    if not check_doc_team_write_permission(req["doc_id"], current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
     try:
         e, doc = DocumentService.get_by_id(req["doc_id"])
@@ -710,7 +731,7 @@ def get(doc_id):
 @validate_request("doc_id")
 def change_parser():
     req = request.json
-    if not DocumentService.accessible(req["doc_id"], current_user.id):
+    if not check_doc_team_write_permission(req["doc_id"], current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
 
     e, doc = DocumentService.get_by_id(req["doc_id"])
@@ -847,7 +868,7 @@ def parse():
 @validate_request("doc_id", "meta")
 def set_meta():
     req = request.json
-    if not DocumentService.accessible(req["doc_id"], current_user.id):
+    if not check_doc_team_write_permission(req["doc_id"], current_user.id):
         return get_json_result(data=False, message="No authorization.", code=settings.RetCode.AUTHENTICATION_ERROR)
     try:
         meta = json.loads(req["meta"])

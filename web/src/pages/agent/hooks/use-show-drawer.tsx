@@ -66,9 +66,11 @@ const ExcludedNodes = [Operator.Note, Operator.Placeholder, Operator.File];
 export function useShowDrawer({
   drawerVisible,
   hideDrawer,
+  readOnly = false,
 }: {
   drawerVisible: boolean;
   hideDrawer(): void;
+  readOnly?: boolean;
 }) {
   const {
     visible: runVisible,
@@ -120,6 +122,7 @@ export function useShowDrawer({
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (e, node) => {
+      if (readOnly) return;
       if (!ExcludedNodes.some((x) => x === node.data.label)) {
         hideSingleDebugDrawer();
         // hideRunOrChatDrawer();
@@ -133,7 +136,7 @@ export function useShowDrawer({
         showSingleDebugDrawer();
       }
     },
-    [hideSingleDebugDrawer, showFormDrawer, showSingleDebugDrawer],
+    [hideSingleDebugDrawer, readOnly, showFormDrawer, showSingleDebugDrawer],
   );
 
   return {

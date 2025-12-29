@@ -18,6 +18,7 @@
 from api.db import TenantPermission
 from api.db.db_models import File, Knowledgebase
 from api.db.services.file_service import FileService
+from api.db.services.document_service import DocumentService
 from api.db.services.knowledgebase_service import KnowledgebaseService
 from api.db.services.user_service import TenantService
 
@@ -57,3 +58,20 @@ def check_file_team_permission(file: dict | File, other: str) -> bool:
             return True
 
     return False
+
+
+def check_kb_team_write_permission(kb: dict | Knowledgebase, other: str) -> bool:
+    kb = kb.to_dict() if isinstance(kb, Knowledgebase) else kb
+    return kb.get("tenant_id") == other
+
+
+def check_doc_team_write_permission(doc_id: str, other: str) -> bool:
+    tenant_id = DocumentService.get_tenant_id(doc_id)
+    if not tenant_id:
+        return False
+    return tenant_id == other
+
+
+def check_file_team_write_permission(file: dict | File, other: str) -> bool:
+    file = file.to_dict() if isinstance(file, File) else file
+    return file.get("tenant_id") == other

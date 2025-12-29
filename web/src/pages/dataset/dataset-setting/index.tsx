@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
+import { useFetchUserInfo } from '@/hooks/user-setting-hooks';
 import { TopTitle } from '../dataset-title';
 import {
   GenerateType,
@@ -45,6 +46,7 @@ const enum MethodValue {
 
 export default function DatasetSettings() {
   const { t } = useTranslation();
+  const { data: userInfo } = useFetchUserInfo();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,6 +83,10 @@ export default function DatasetSettings() {
     },
   });
   const knowledgeDetails = useFetchKnowledgeConfigurationOnMount(form);
+  const isReadOnly =
+    !!knowledgeDetails?.tenant_id &&
+    !!userInfo?.id &&
+    knowledgeDetails.tenant_id !== userInfo.id;
   // const [pipelineData, setPipelineData] = useState<IDataPipelineNodeProps>();
   const [graphRagGenerateData, setGraphRagGenerateData] =
     useState<IGenerateLogButtonProps>();
@@ -178,11 +184,13 @@ export default function DatasetSettings() {
                   onDelete={() =>
                     handleDeletePipelineTask(GenerateType.KnowledgeGraph)
                   }
+                  readOnly={isReadOnly}
                 ></GraphRagItems>
                 <Divider />
                 <RaptorFormFields
                   data={raptorGenerateData as IGenerateLogButtonProps}
                   onDelete={() => handleDeletePipelineTask(GenerateType.Raptor)}
+                  readOnly={isReadOnly}
                 ></RaptorFormFields>
                 <Divider />
                 <ParseTypeItem line={1} />
@@ -212,12 +220,14 @@ export default function DatasetSettings() {
                 type="reset"
                 className="bg-transparent text-color-white hover:bg-transparent border-gray-500 border-[1px]"
                 onClick={() => {
+                  if (isReadOnly) return;
                   form.reset();
                 }}
+                disabled={isReadOnly}
               >
                 {t('knowledgeConfiguration.cancel')}
               </Button>
-              <SavingButton></SavingButton>
+              <SavingButton disabled={isReadOnly}></SavingButton>
             </div>
           </form>
         </Form>

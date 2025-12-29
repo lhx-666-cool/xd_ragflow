@@ -46,11 +46,12 @@ export function ParsingStatusCell({
   showChangeParserModal,
   showSetMetaModal,
   showLog,
+  readOnly = false,
 }: {
   record: IDocumentInfo;
   showLog: (record: IDocumentInfo) => void;
 } & UseChangeDocumentParserShowType &
-  UseSaveMetaShowType) {
+  UseSaveMetaShowType & { readOnly?: boolean }) {
   const { t } = useTranslation();
   const {
     run,
@@ -66,20 +67,24 @@ export function ParsingStatusCell({
   const { handleRunDocumentByIds } = useHandleRunDocumentByIds(id);
   const isRunning = isParserRunning(run);
   const isZeroChunk = chunk_num === 0;
+  const canEdit = !readOnly;
 
   const handleOperationIconClick =
     (shouldDelete: boolean = false) =>
     () => {
+      if (!canEdit) return;
       handleRunDocumentByIds(record.id, isRunning, shouldDelete);
     };
 
   const handleShowChangeParserModal = useCallback(() => {
+    if (!canEdit) return;
     showChangeParserModal(record);
-  }, [record, showChangeParserModal]);
+  }, [canEdit, record, showChangeParserModal]);
 
   const handleShowSetMetaModal = useCallback(() => {
+    if (!canEdit) return;
     showSetMetaModal(record);
-  }, [record, showSetMetaModal]);
+  }, [canEdit, record, showSetMetaModal]);
 
   const showParse = useMemo(() => {
     return record.type !== DocumentType.Virtual;
@@ -92,10 +97,12 @@ export function ParsingStatusCell({
     <section className="flex gap-8 items-center">
       <div className="text-ellipsis w-[100px] flex items-center justify-between">
         <DropdownMenu>
-          <DropdownMenuTrigger>
+          <DropdownMenuTrigger disabled={readOnly}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="border-none truncate max-w-32 cursor-pointer px-2 py-1 rounded-sm hover:bg-bg-card">
+                <div
+                  className={`border-none truncate max-w-32 px-2 py-1 rounded-sm ${canEdit ? 'cursor-pointer hover:bg-bg-card' : 'cursor-default'}`}
+                >
                   {pipeline_id
                     ? pipeline_name || pipeline_id
                     : parser_id === 'naive'
@@ -115,10 +122,16 @@ export function ParsingStatusCell({
             </Tooltip>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={handleShowChangeParserModal}>
+            <DropdownMenuItem
+              disabled={readOnly}
+              onClick={handleShowChangeParserModal}
+            >
               {t('knowledgeDetails.dataPipeline')}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleShowSetMetaModal}>
+            <DropdownMenuItem
+              disabled={readOnly}
+              onClick={handleShowSetMetaModal}
+            >
               {t('knowledgeDetails.setMetaData')}
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -131,14 +144,14 @@ export function ParsingStatusCell({
           {!isParserRunning(run) && (
             <ConfirmDeleteDialog
               title={t(`knowledgeDetails.redo`, { chunkNum: chunk_num })}
-              hidden={isZeroChunk || isRunning}
+              hidden={isZeroChunk || isRunning || readOnly}
               onOk={handleOperationIconClick(true)}
               onCancel={handleOperationIconClick(false)}
             >
               <div
-                className="cursor-pointer flex items-center gap-3"
+                className={`flex items-center gap-3 ${canEdit ? 'cursor-pointer' : 'cursor-default'}`}
                 onClick={
-                  isZeroChunk || isRunning
+                  isZeroChunk || isRunning || readOnly
                     ? handleOperationIconClick(false)
                     : () => {}
                 }
@@ -157,9 +170,9 @@ export function ParsingStatusCell({
                 {p}%
               </div>
               <div
-                className="cursor-pointer flex items-center gap-3"
+                className={`flex items-center gap-3 ${canEdit ? 'cursor-pointer' : 'cursor-default'}`}
                 onClick={
-                  isZeroChunk || isRunning
+                  isZeroChunk || isRunning || readOnly
                     ? handleOperationIconClick(false)
                     : () => {}
                 }

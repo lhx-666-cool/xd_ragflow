@@ -13,6 +13,7 @@ import {
 import { useRowSelection } from '@/hooks/logic-hooks/use-row-selection';
 import { useFetchDocumentList } from '@/hooks/use-document-request';
 import { useFetchKnowledgeBaseConfiguration } from '@/hooks/use-knowledge-request';
+import { useFetchUserInfo } from '@/hooks/user-setting-hooks';
 import { Upload } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +52,11 @@ export default function Dataset() {
   const { data: dataSetData } = useFetchKnowledgeBaseConfiguration({
     refreshCount,
   });
+  const { data: userInfo } = useFetchUserInfo();
+  const isReadOnly =
+    !!dataSetData?.tenant_id &&
+    !!userInfo?.id &&
+    dataSetData.tenant_id !== userInfo.id;
   const { filters, onOpenChange } = useSelectDatasetFilters();
 
   const {
@@ -68,11 +74,14 @@ export default function Dataset() {
     documents,
     rowSelection,
     setRowSelection,
+    readOnly: isReadOnly,
   });
   return (
     <>
       <div className="absolute top-4 right-5">
-        <Generate disabled={!(dataSetData.chunk_num > 0)} />
+        <Generate
+          disabled={isReadOnly || !(dataSetData.chunk_num > 0)}
+        />
       </div>
       <section className="p-5 min-w-[880px]">
         <ListFilterBar
@@ -93,24 +102,30 @@ export default function Dataset() {
           }
         >
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size={'sm'}>
+            <DropdownMenuTrigger asChild disabled={isReadOnly}>
+              <Button size={'sm'} disabled={isReadOnly}>
                 <Upload />
                 {t('knowledgeDetails.addFile')}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
-              <DropdownMenuItem onClick={showDocumentUploadModal}>
+              <DropdownMenuItem
+                disabled={isReadOnly}
+                onClick={showDocumentUploadModal}
+              >
                 {t('fileManager.uploadFile')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={showCreateModal}>
+              <DropdownMenuItem
+                disabled={isReadOnly}
+                onClick={showCreateModal}
+              >
                 {t('knowledgeDetails.emptyFiles')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </ListFilterBar>
-        {rowSelectionIsEmpty || (
+        {rowSelectionIsEmpty || isReadOnly || (
           <BulkOperateBar list={list} count={selectedCount}></BulkOperateBar>
         )}
         <DatasetTable
@@ -120,8 +135,9 @@ export default function Dataset() {
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           loading={loading}
+          readOnly={isReadOnly}
         ></DatasetTable>
-        {documentUploadVisible && (
+        {documentUploadVisible && !isReadOnly && (
           <FileUploadDialog
             hideModal={hideDocumentUploadModal}
             onOk={onDocumentUploadOk}
@@ -129,7 +145,7 @@ export default function Dataset() {
             showParseOnCreation
           ></FileUploadDialog>
         )}
-        {createVisible && (
+        {createVisible && !isReadOnly && (
           <RenameDialog
             hideModal={hideCreateModal}
             onOk={onCreateOk}

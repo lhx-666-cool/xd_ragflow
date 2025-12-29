@@ -27,6 +27,8 @@ const KnowledgeCard = ({ item }: IProps) => {
   const { data: userInfo } = useFetchUserInfo();
   const { theme } = useTheme();
   const { deleteKnowledge } = useDeleteKnowledge();
+  const isReadOnly =
+    !!item?.tenant_id && !!userInfo?.id && item.tenant_id !== userInfo.id;
 
   const removeKnowledge = async () => {
     return deleteKnowledge(item.id);
@@ -50,7 +52,9 @@ const KnowledgeCard = ({ item }: IProps) => {
         <div className={styles.container}>
           <div className={styles.content}>
             <Avatar size={34} icon={<UserOutlined />} src={item.avatar} />
-            <OperateDropdown deleteItem={removeKnowledge}></OperateDropdown>
+            {isReadOnly ? null : (
+              <OperateDropdown deleteItem={removeKnowledge}></OperateDropdown>
+            )}
           </div>
           <div className={styles.titleWrapper}>
             <span

@@ -20,6 +20,7 @@ import {
 import message from '@/components/ui/message';
 import { SharedFrom } from '@/constants/chat';
 import { useSetModalState } from '@/hooks/common-hooks';
+import { useFetchUserInfo } from '@/hooks/user-setting-hooks';
 import { useNavigatePage } from '@/hooks/logic-hooks/navigate-hooks';
 import { ReactFlowProvider } from '@xyflow/react';
 import {
@@ -83,8 +84,16 @@ export default function Agent() {
   const { handleExportJson } = useHandleExportJsonFile();
   const { saveGraph, loading } = useSaveGraph();
   const { flowDetail: agentDetail } = useFetchDataOnMount();
+  const { data: userInfo } = useFetchUserInfo();
+  const isReadOnly =
+    !!agentDetail?.user_id &&
+    !!userInfo?.id &&
+    agentDetail.user_id !== userInfo.id;
   const inputs = useGetBeginNodeDataInputs();
-  const { handleRun } = useSaveGraphBeforeOpeningDebugDrawer(showChatDrawer);
+  const { handleRun } = useSaveGraphBeforeOpeningDebugDrawer(
+    showChatDrawer,
+    !isReadOnly,
+  );
   const handleRunAgent = useCallback(() => {
     if (inputs.length > 0) {
       showChatDrawer();
@@ -107,7 +116,7 @@ export default function Agent() {
   const { showEmbedModal, hideEmbedModal, embedVisible, beta } =
     useShowEmbedModal();
   const { navigateToAgentLogs } = useNavigatePage();
-  const time = useWatchAgentChange(chatDrawerVisible);
+  const time = useWatchAgentChange(chatDrawerVisible, !isReadOnly);
 
   // pipeline
 
@@ -175,7 +184,11 @@ export default function Agent() {
     run: runPipeline,
     loading: pipelineRunning,
     uploadedFileData,
-  } = useRunDataflow({ showLogSheet: showPipelineLogSheet, setMessageId });
+  } = useRunDataflow({
+    showLogSheet: showPipelineLogSheet,
+    setMessageId,
+    canEdit: !isReadOnly,
+  });
 
   return (
     <section className="h-full">
@@ -203,6 +216,7 @@ export default function Agent() {
             variant={'secondary'}
             onClick={() => saveGraph()}
             loading={loading}
+            disabled={isReadOnly}
           >
             <LaptopMinimalCheck /> {t('flow.save')}
           </ButtonLoading>
@@ -235,7 +249,10 @@ export default function Agent() {
                 {t('flow.export')}
               </AgentDropdownMenuItem>
               <DropdownMenuSeparator />
-              <AgentDropdownMenuItem onClick={showSettingDialog}>
+              <AgentDropdownMenuItem
+                onClick={showSettingDialog}
+                disabled={isReadOnly}
+              >
                 <Settings />
                 {t('flow.setting')}
               </AgentDropdownMenuItem>
@@ -253,11 +270,17 @@ export default function Agent() {
           </DropdownMenu>
         </div>
       </PageHeader>
+      {isReadOnly && (
+        <div className="mx-5 mt-3 rounded-md border border-border/60 bg-bg-card px-3 py-2 text-xs text-text-secondary">
+          Read-only: only the owner can edit this agent.
+        </div>
+      )}
       <ReactFlowProvider>
         <DropdownProvider>
           <AgentCanvas
             drawerVisible={chatDrawerVisible}
             hideDrawer={hideChatDrawer}
+            readOnly={isReadOnly}
           ></AgentCanvas>
         </DropdownProvider>
       </ReactFlowProvider>
