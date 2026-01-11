@@ -1,4 +1,6 @@
 import SvgIcon from '@/components/svg-icon';
+import message from '@/components/ui/message';
+import { Authorization, Token, UserInfo } from '@/constants/authorization';
 import { useAuth } from '@/hooks/auth-hooks';
 import {
   useLogin,
@@ -8,7 +10,9 @@ import {
 } from '@/hooks/login-hooks';
 import { useSystemConfig } from '@/hooks/system-hooks';
 import { rsaPsw } from '@/utils';
-import { useEffect, useState } from 'react';
+import authorizationUtil from '@/utils/authorization-util';
+import request from '@/utils/request';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'umi';
 
@@ -33,6 +37,27 @@ import { BgSvg } from './bg';
 import FlipCard3D from './card';
 import './index.less';
 
+const DEFAULT_IDS_SERVICE_URL = 'https://xdechat.xidian.edu.cn/';
+const DEFAULT_IDS_LOGIN_BASE_URL = 'https://ids.xidian.edu.cn/authserver/login';
+const DEFAULT_TICKET_LOGIN_URL = '/v1/user/login';
+
+const ensureTrailingSlash = (value: string) =>
+  value.endsWith('/') ? value : `${value}/`;
+
+const getIdsServiceUrl = () =>
+  ensureTrailingSlash(
+    process.env.UMI_APP_XD_IDS_SERVICE_URL || DEFAULT_IDS_SERVICE_URL,
+  );
+
+const getIdsLoginUrl = () =>
+  process.env.UMI_APP_XD_IDS_LOGIN_URL ||
+  `${DEFAULT_IDS_LOGIN_BASE_URL}?service=${encodeURIComponent(
+    getIdsServiceUrl(),
+  )}`;
+
+const getTicketLoginUrl = () =>
+  process.env.UMI_APP_XD_IDS_TICKET_LOGIN_URL || DEFAULT_TICKET_LOGIN_URL;
+
 const Login = () => {
   const [title, setTitle] = useState('login');
   const navigate = useNavigate();
@@ -44,11 +69,14 @@ const Login = () => {
   const { t } = useTranslation('translation', { keyPrefix: 'login' });
   const [isLoginPage, setIsLoginPage] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [ticketLoginLoading, setTicketLoginLoading] = useState(false);
+  const ticketHandledRef = useRef(false);
   const loading =
     signLoading ||
     registerLoading ||
     channelsLoading ||
-    loginWithChannelLoading;
+    loginWithChannelLoading ||
+    ticketLoginLoading;
   const { config } = useSystemConfig();
   const registerEnabled = config?.registerEnabled !== 0;
 
@@ -59,8 +87,79 @@ const Login = () => {
     }
   }, [isLogin, navigate]);
 
+  useEffect(() => {
+    if (isLogin) {
+      return;
+    }
+
+    const ticket = new URLSearchParams(window.location.search).get('ticket');
+    if (!ticket || ticketHandledRef.current) {
+      return;
+    }
+    ticketHandledRef.current = true;
+
+    const loginWithTicket = async () => {
+      setTicketLoginLoading(true);
+      try {
+        const url = new URL(getTicketLoginUrl(), window.location.origin);
+        url.searchParams.set('ticket', ticket);
+        const { data: res = {}, response } = await request.get(url.toString(), {
+          skipToken: true,
+        });
+        const payload = res?.data ?? res;
+        const accessToken = payload?.access_token;
+        const uid = payload?.uid;
+        const userName = payload?.userName ?? payload?.username;
+        const authorizationHeader = response?.headers?.get(Authorization);
+        const authorization =
+          authorizationHeader || (accessToken ? `Bearer ${accessToken}` : '');
+        const resCode = res?.code;
+        const success =
+          resCode === 0 ||
+          resCode === 200 ||
+          (resCode === undefined && !!accessToken);
+
+        if (!success) {
+          message.error(res?.message || 'Ticket login failed');
+          return;
+        }
+
+        if (!authorization || !accessToken) {
+          message.error('Ticket login response missing token');
+          return;
+        }
+
+        authorizationUtil.setItems({
+          [Authorization]: authorization,
+          [Token]: accessToken,
+          [UserInfo]: JSON.stringify({
+            avatar: payload?.avatar,
+            name: userName || uid || '',
+            email: uid || '',
+          }),
+        });
+
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.delete('ticket');
+        window.history.replaceState({}, '', currentUrl.toString());
+        navigate('/');
+      } catch (error) {
+        console.error(error);
+        message.error('Ticket login failed');
+      } finally {
+        setTicketLoginLoading(false);
+      }
+    };
+
+    void loginWithTicket();
+  }, [isLogin, navigate]);
+
   const handleLoginWithChannel = async (channel: string) => {
     await loginWithChannel(channel);
+  };
+
+  const handleIdsLogin = () => {
+    window.location.href = getIdsLoginUrl();
   };
 
   const changeTitle = () => {
@@ -301,6 +400,28 @@ const Login = () => {
                     >
                       {title === 'login' ? t('login') : t('continue')}
                     </ButtonLoading>
+                    {title === 'login' && (
+                      <div className="mt-4">
+                        <div className="flex items-center gap-3 text-xs text-text-disabled">
+                          <span className="h-px flex-1 bg-border" />
+                          <span>Third-party login</span>
+                          <span className="h-px flex-1 bg-border" />
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full mt-4 h-10"
+                          onClick={handleIdsLogin}
+                          disabled={ticketLoginLoading}
+                        >
+                          <img
+                            src="https://www.xidian.edu.cn/favicon.ico"
+                            alt="Xidian IDS"
+                            className="h-4 w-4"
+                          />
+                          西安电子科技大学统一身份认证
+                        </Button>
+                      </div>
+                    )}
                     {title === 'login' && channels && channels.length > 0 && (
                       <div className="mt-3 border">
                         {channels.map((item) => (

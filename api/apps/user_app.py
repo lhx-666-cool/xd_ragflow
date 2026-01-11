@@ -15,20 +15,22 @@
 #
 import json
 import logging
-import string
 import os
 import re
 import secrets
+import string
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from flask import redirect, request, session, make_response
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
+import requests
 
 from api import settings
 from api.apps.auth import get_auth_client
-from api.db import FileType, UserTenantRole
+from api.db import FileType, UserTenantRole, StatusEnum
 from api.db.db_models import TenantLLM
 from api.db.services.api_service import APITokenService
 from api.db.services.file_service import FileService
@@ -92,6 +94,9 @@ def login():
         schema:
           type: object
     """
+    if request.method == "GET" and request.args.get("ticket"):
+        return login_with_ticket()
+
     if not request.json:
         return get_json_result(data=False, code=settings.RetCode.AUTHENTICATION_ERROR, message="Unauthorized!")
 
@@ -133,6 +138,138 @@ def login():
             code=settings.RetCode.AUTHENTICATION_ERROR,
             message="Email and password do not match!",
         )
+
+
+def _ensure_trailing_slash(value: str) -> str:
+    return value if value.endswith("/") else f"{value}/"
+
+
+def _get_ids_service_url() -> str:
+    return _ensure_trailing_slash(settings.XD_IDS_SERVICE_URL or "https://xdechat.xidian.edu.cn/")
+
+
+def _get_ids_validate_url() -> str:
+    return settings.XD_IDS_VALIDATE_URL or "https://ids.xidian.edu.cn/authserver/serviceValidate"
+
+
+def _parse_ids_response(xml_text: str):
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return None, None
+
+    ns = {"cas": "http://www.yale.edu/tp/cas"}
+    uid = root.findtext(".//cas:uid", namespaces=ns) or root.findtext(".//cas:user", namespaces=ns)
+    username = root.findtext(".//cas:userName", namespaces=ns) or root.findtext(".//cas:cn", namespaces=ns)
+    return uid, username
+
+
+def login_with_ticket():
+    ticket = request.args.get("ticket", "")
+    logging.info("IDS ticket login request: ticket=%s", ticket)
+    if not ticket:
+        return get_json_result(
+            data=False,
+            code=settings.RetCode.AUTHENTICATION_ERROR,
+            message="Unauthorized!",
+        )
+
+    service_url = _get_ids_service_url()
+    validate_url = _get_ids_validate_url()
+    logging.info(
+        "IDS ticket login validate request: url=%s service=%s",
+        validate_url,
+        service_url,
+    )
+
+    try:
+        response = requests.get(
+            validate_url,
+            params={"service": service_url, "ticket": ticket},
+            timeout=10,
+        )
+    except Exception as e:
+        logging.exception(e)
+        return get_json_result(
+            data=False,
+            code=settings.RetCode.AUTHENTICATION_ERROR,
+            message="Identity verification failed!",
+        )
+
+    logging.info(
+        "IDS ticket login validate response: status=%s body=%s",
+        response.status_code,
+        response.text,
+    )
+
+    if response.status_code != 200:
+        return get_json_result(
+            data=False,
+            code=settings.RetCode.AUTHENTICATION_ERROR,
+            message="Identity verification failed!",
+        )
+
+    uid, username = _parse_ids_response(response.text)
+    if not uid:
+        return get_json_result(
+            data=False,
+            code=settings.RetCode.AUTHENTICATION_ERROR,
+            message="Identity verification failed!",
+        )
+
+    email = uid
+    users = UserService.query(email=email)
+    user_id = get_uuid()
+
+    if not users:
+        try:
+            users = user_register(
+                user_id,
+                {
+                    "access_token": get_uuid(),
+                    "email": email,
+                    "avatar": "",
+                    "nickname": username or uid,
+                    "login_channel": "xidian_ids",
+                    "last_login_time": get_format_time(),
+                    "is_superuser": False,
+                },
+            )
+
+            if not users:
+                raise Exception(f"Failed to register {email}")
+            if len(users) > 1:
+                raise Exception(f"Same email: {email} exists!")
+
+        except Exception as e:
+            rollback_user_registration(user_id)
+            logging.exception(e)
+            return get_json_result(
+                data=False,
+                code=settings.RetCode.EXCEPTION_ERROR,
+                message="Failed to register user!",
+            )
+
+    user = users[0]
+    user.access_token = get_uuid()
+    user.login_channel = "xidian_ids"
+    if username and user.nickname != username:
+        user.nickname = username
+    user.last_login_time = get_format_time()
+
+    if user and hasattr(user, "is_active") and user.is_active == "0":
+        return get_json_result(
+            data=False,
+            code=settings.RetCode.FORBIDDEN,
+            message="This account has been disabled, please contact the administrator!",
+        )
+
+    login_user(user)
+    user.update_time = (current_timestamp(),)
+    user.update_date = (datetime_format(datetime.now()),)
+    user.save()
+    msg = "Welcome back!"
+    return construct_response(data=user.to_json(), auth=user.get_id(), message=msg)
 
 
 @manager.route("/login/channels", methods=["GET"])  # noqa: F821
@@ -607,15 +744,47 @@ def rollback_user_registration(user_id):
     except Exception:
         pass
     try:
-        u = UserTenantService.query(tenant_id=user_id)
+        u = UserTenantService.query(user_id=user_id)
         if u:
-            UserTenantService.delete_by_id(u[0].id)
+            UserTenantService.delete_by_ids([item.id for item in u])
     except Exception:
         pass
     try:
         TenantLLM.delete().where(TenantLLM.tenant_id == user_id).execute()
     except Exception:
         pass
+
+
+def _get_first_user():
+    users = UserService.query(
+        status=StatusEnum.VALID.value,
+        reverse=False,
+        order_by="create_time",
+    )
+    return users[0] if users else None
+
+
+def _ensure_user_in_default_team(user_id):
+    first_user = _get_first_user()
+    if not first_user or first_user.id == user_id:
+        return True
+
+    existing = UserTenantService.query(user_id=user_id, tenant_id=first_user.id)
+    if existing:
+        return True
+
+    try:
+        UserTenantService.insert(
+            user_id=user_id,
+            tenant_id=first_user.id,
+            invited_by=first_user.id,
+            role=UserTenantRole.NORMAL,
+            status=StatusEnum.VALID.value,
+        )
+        return True
+    except Exception as e:
+        logging.exception(e)
+        return False
 
 
 def user_register(user_id, user):
@@ -666,6 +835,8 @@ def user_register(user_id, user):
     TenantLLMService.insert_many(tenant_llm)
     FileService.insert(file)
     if not APITokenService.save(**api_token):
+        return
+    if not _ensure_user_in_default_team(user_id):
         return
     return UserService.query(email=user["email"])
 

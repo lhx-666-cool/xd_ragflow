@@ -59,5 +59,11 @@ export default storage;
 
 // Will not jump to the login page
 export function redirectToLogin() {
-  window.location.href = location.origin + `/login`;
+  const currentUrl = new URL(window.location.href);
+  const ticket = currentUrl.searchParams.get('ticket');
+  const loginUrl = new URL('/login', location.origin);
+  if (ticket) {
+    loginUrl.searchParams.set('ticket', ticket);
+  }
+  window.location.href = loginUrl.toString();
 }

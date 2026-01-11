@@ -78,12 +78,15 @@ STRONG_TEST_COUNT = int(os.environ.get("STRONG_TEST_COUNT", "8"))
 SMTP_CONF = None
 MAIL_SERVER = ""
 MAIL_PORT = 000
-MAIL_USE_SSL= True
+MAIL_USE_SSL = True
 MAIL_USE_TLS = False
 MAIL_USERNAME = ""
 MAIL_PASSWORD = ""
 MAIL_DEFAULT_SENDER = ()
 MAIL_FRONTEND_URL = ""
+
+XD_IDS_SERVICE_URL = None
+XD_IDS_VALIDATE_URL = None
 
 
 def get_or_create_secret_key():
@@ -203,6 +206,13 @@ def init_settings():
     if mail_default_sender and len(mail_default_sender) >= 2:
         MAIL_DEFAULT_SENDER = (mail_default_sender[0], mail_default_sender[1])
     MAIL_FRONTEND_URL = SMTP_CONF.get("mail_frontend_url", "")
+
+    global XD_IDS_SERVICE_URL, XD_IDS_VALIDATE_URL
+    XD_IDS_SERVICE_URL = os.environ.get("XD_IDS_SERVICE_URL", "https://xdechat.xidian.edu.cn/")
+    XD_IDS_VALIDATE_URL = os.environ.get(
+        "XD_IDS_VALIDATE_URL",
+        "https://ids.xidian.edu.cn/authserver/serviceValidate",
+    )
 
 
 class CustomEnum(Enum):

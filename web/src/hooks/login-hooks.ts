@@ -115,6 +115,13 @@ export const useRegister = () => {
 
 export const useLogout = () => {
   const { t } = useTranslation();
+  const idsServiceUrl =
+    process.env.UMI_APP_XD_IDS_SERVICE_URL || 'https://xdechat.xidian.edu.cn/';
+  const idsLogoutUrl =
+    process.env.UMI_APP_XD_IDS_LOGOUT_URL ||
+    `https://ids.xidian.edu.cn/authserver/logout?service=${encodeURIComponent(
+      idsServiceUrl,
+    )}`;
   const {
     data,
     isPending: loading,
@@ -126,7 +133,7 @@ export const useLogout = () => {
       if (data.code === 0) {
         message.success(t('message.logout'));
         authorizationUtil.removeAll();
-        redirectToLogin();
+        window.location.href = idsLogoutUrl;
       }
       return data.code;
     },
