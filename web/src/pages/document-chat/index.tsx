@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Authorization } from '@/constants/authorization';
 import { Images } from '@/constants/common';
 import { cn } from '@/lib/utils';
 import DocxViewer from '@/pages/document-viewer/docx';
@@ -11,6 +12,7 @@ import TextViewer from '@/pages/document-viewer/text';
 import { RAGFlowSelect } from '@/components/ui/select';
 import kbService, { createDocumentSignedUrl } from '@/services/knowledge-service';
 import { api_host } from '@/utils/api';
+import { getAuthorization } from '@/utils/authorization-util';
 import { previewHtmlFile } from '@/utils/file-util';
 import {
   ArrowLeft,
@@ -46,6 +48,10 @@ const EraserIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const DOCUMENT_CHAT_CACHE_PREFIX = 'documentChatHistory:';
+const MODEL_OPTIONS = [
+  { label: 'xdechat', value: 'xdechat' },
+  { label: 'qwen-vl-default', value: 'qwen-vl-default' },
+];
 const DEFAULT_ASSISTANT_MESSAGE: ChatMessage = {
   id: 'assistant-initial',
   role: 'assistant',
@@ -224,11 +230,12 @@ const DocumentChatPage = () => {
       };
 
       const response = await fetch(
-        'https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample',
+        '/v1/document/parallel_sample',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            [Authorization]: getAuthorization(),
           },
           body: JSON.stringify(requestBody),
         },
@@ -411,7 +418,7 @@ const DocumentChatPage = () => {
                 <RAGFlowSelect
                   value={modelName}
                   onChange={(val) => setModelName(val || 'xdechat')}
-                  options={[{ label: 'xdechat', value: 'xdechat' }]}
+                  options={MODEL_OPTIONS}
                   placeholder="选择模型"
                 />
               </div>

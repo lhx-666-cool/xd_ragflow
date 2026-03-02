@@ -654,6 +654,32 @@ def create_signed_url():
         return server_error_response(e)
 
 
+@manager.route("/parallel_sample", methods=["POST"])  # noqa: F821
+@login_required
+def parallel_sample():
+    """
+    代理文档问答并发解析请求到第三方服务。
+    """
+    payload = request.get_json(silent=True) or {}
+    model_name = (payload.get("model_name") or "").strip()
+    target_url = {
+        "xdechat": "https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample",
+        "qwen-vl-default": "http://127.0.0.1:8026/api/document/qa",
+    }.get(model_name, "https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample")
+
+    try:
+        import requests
+
+        resp = requests.post(target_url, json=payload, timeout=300)
+        return flask.Response(
+            resp.content,
+            status=resp.status_code,
+            content_type=resp.headers.get("Content-Type", "application/json"),
+        )
+    except Exception as e:
+        return flask.Response(str(e), status=502, mimetype="text/plain")
+
+
 @manager.route("/get/<doc_id>", methods=["GET"])  # noqa: F821
 # @login_required
 def get(doc_id):
