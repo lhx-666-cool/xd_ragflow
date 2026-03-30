@@ -1,0 +1,36 @@
+services:
+  es01:
+    pull_policy: never
+
+  opensearch01:
+    pull_policy: never
+
+  infinity:
+    pull_policy: never
+
+  sandbox-executor-manager:
+    pull_policy: never
+
+  mysql:
+    pull_policy: never
+
+  minio:
+    pull_policy: never
+
+  redis:
+    pull_policy: never
+
+  tei-cpu:
+    pull_policy: never
+
+  tei-gpu:
+    pull_policy: never
+
+  kibana:
+    pull_policy: never
+
+  ragflow-cpu:
+    pull_policy: never
+
+  ragflow-gpu:
+    pull_policy: never

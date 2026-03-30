@@ -14,7 +14,7 @@ RUN --mount=type=bind,from=infiniflow/ragflow_deps:latest,source=/huggingface.co
     tar --exclude='.*' -cf - \
         /huggingface.co/InfiniFlow/text_concat_xgb_v1.0 \
         /huggingface.co/InfiniFlow/deepdoc \
-        | tar -xf - --strip-components=3 -C /ragflow/rag/res/deepdoc 
+        | tar -xf - --strip-components=3 -C /ragflow/rag/res/deepdoc
 
 # https://github.com/chrismattmann/tika-python
 # This is the only way to run python-tika without internet access. Without this set, the default is to check the tika version and pull latest every time from Apache.
@@ -35,23 +35,32 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Building C extensions: libpython3-dev libgtk-4-1 libnss3 xdg-utils libgbm-dev
 RUN --mount=type=cache,id=ragflow_apt,target=/var/cache/apt,sharing=locked \
     if [ "$NEED_MIRROR" == "1" ]; then \
-        sed -i 's|http://ports.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
-        sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
+        if [ -f /etc/apt/sources.list ]; then \
+            sed -i 's|http://ports.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
+            sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list; \
+        fi; \
+        if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then \
+            sed -i 's|http://ports.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources; \
+            sed -i 's|http://archive.ubuntu.com|http://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/ubuntu.sources; \
+        fi; \
     fi; \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries && \
     echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache && \
     chmod 1777 /tmp && \
-    apt update && \
-    apt --no-install-recommends install -y ca-certificates && \
-    apt update && \
-    apt install -y libglib2.0-0 libglx-mesa0 libgl1 && \
-    apt install -y pkg-config libicu-dev libgdiplus && \
-    apt install -y default-jdk && \
-    apt install -y libatk-bridge2.0-0 && \
-    apt install -y libpython3-dev libgtk-4-1 libnss3 xdg-utils libgbm-dev && \
-    apt install -y libjemalloc-dev && \
-    apt install -y python3-pip pipx nginx unzip curl wget git vim less && \
-    apt install -y ghostscript
+    apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates software-properties-common && \
+    add-apt-repository -y universe && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libglib2.0-0 libglx-mesa0 libgl1 \
+        pkg-config libicu-dev libgdiplus \
+        default-jdk \
+        libatk-bridge2.0-0 \
+        libpython3-dev libgtk-4-1 libnss3 xdg-utils libgbm-dev \
+        libjemalloc-dev \
+        python3-pip pipx nginx unzip curl wget git vim less \
+        ghostscript
 
 RUN if [ "$NEED_MIRROR" == "1" ]; then \
         pip3 config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
