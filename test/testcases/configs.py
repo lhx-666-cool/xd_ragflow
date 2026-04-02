@@ -23,7 +23,13 @@ ZHIPU_AI_API_KEY = os.getenv("ZHIPU_AI_API_KEY")
 if ZHIPU_AI_API_KEY is None:
     pytest.exit("Error: Environment variable ZHIPU_AI_API_KEY must be set")
 
-EMAIL = "qa@infiniflow.org"
+EMAIL = os.getenv(
+    "TEST_REGISTER_EMAIL",
+    os.getenv(
+        "EMAIL",
+        "qa@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6",
+    ),
+)
 # password is "123"
 PASSWORD = """ctAseGvejiaSWWZ88T/m4FQVOpQyUvP+x7sXtdv3feqZACiQleuewkUi35E16wSd5C5QcnkkcV9cYc8TKPTRZlxappDuirxghxoOvFcJxFU4ixLsD
 fN33jCHRoDUW81IH9zjij/vaw8IbVyb6vuwg6MX6inOEBRRzVbRYxXOu1wkWY6SsI8X70oF9aeLFp/PzQpjoe/YbSqpTq8qqrmHzn9vO+yvyYyvmDsphXe

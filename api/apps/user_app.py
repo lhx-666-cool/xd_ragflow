@@ -62,6 +62,12 @@ from api.utils.web_utils import (
     captcha_key,
 )
 
+WEB_REGISTER_EMAIL_SUFFIX = "@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6"
+
+
+def is_allowed_web_register_email(email: str) -> bool:
+    return bool(email) and email.strip().lower().endswith(WEB_REGISTER_EMAIL_SUFFIX)
+
 
 @manager.route("/login", methods=["POST", "GET"])  # noqa: F821
 def login():
@@ -881,13 +887,20 @@ def user_add():
         )
 
     req = request.json
-    email_address = req["email"]
+    email_address = str(req["email"]).strip()
 
     # Validate the email address
     if not re.match(r"^[\w\._-]+@([\w_-]+\.)+[\w-]{2,}$", email_address):
         return get_json_result(
             data=False,
             message=f"Invalid email address: {email_address}!",
+            code=settings.RetCode.OPERATING_ERROR,
+        )
+
+    if not is_allowed_web_register_email(email_address):
+        return get_json_result(
+            data=False,
+            message="User registration is disabled!",
             code=settings.RetCode.OPERATING_ERROR,
         )
 
