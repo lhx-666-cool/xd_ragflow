@@ -89,7 +89,7 @@ export default function SearchingView({
             setIsSearching?.(false);
           }}
         >
-          RAGFlow
+          慧通
         </h1>
         <div
           className={cn(

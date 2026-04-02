@@ -1841,8 +1841,8 @@ Important structured information may include: names, dates, locations, events, k
       processing: 'Processing',
     },
     admin: {
-      loginTitle: 'RAGFlow ADMIN',
-      title: 'RAGFlow admin',
+      loginTitle: '慧通 ADMIN',
+      title: '慧通 admin',
       confirm: 'Confirm',
       close: 'Close',
       yes: 'Yes',

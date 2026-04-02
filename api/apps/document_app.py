@@ -664,7 +664,7 @@ def parallel_sample():
     model_name = (payload.get("model_name") or "").strip()
     target_url = {
         "xdechat": "https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample",
-        "qwen-vl-default": "http://127.0.0.1:8026/api/document/qa",
+        "qwen-vl-default": "https://xdechat.xidian.edu.cn/api/document/qa",
     }.get(model_name, "https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample")
 
     try:
