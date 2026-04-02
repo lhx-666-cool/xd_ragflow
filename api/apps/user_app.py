@@ -62,7 +62,7 @@ from api.utils.web_utils import (
     captcha_key,
 )
 
-WEB_REGISTER_EMAIL_SUFFIX = "@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6"
+WEB_REGISTER_EMAIL_SUFFIX = "@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6.xidian.edu.cn"
 
 
 def is_allowed_web_register_email(email: str) -> bool:

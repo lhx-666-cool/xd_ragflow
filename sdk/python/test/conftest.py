@@ -25,11 +25,11 @@ if ZHIPU_AI_API_KEY is None:
     pytest.exit("Error: Environment variable ZHIPU_AI_API_KEY must be set")
 
 # def generate_random_email():
-#     return 'user_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))+'@1.com'
+#     return "user_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=8)) + "@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6.xidian.edu.cn"
 
 
 def generate_email():
-    return "user_123@1.com"
+    return "user_123@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6.xidian.edu.cn"
 
 
 EMAIL = generate_email()

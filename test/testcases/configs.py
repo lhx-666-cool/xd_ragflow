@@ -27,7 +27,7 @@ EMAIL = os.getenv(
     "TEST_REGISTER_EMAIL",
     os.getenv(
         "EMAIL",
-        "qa@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6",
+        "qa@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6.xidian.edu.cn",
     ),
 )
 # password is "123"
