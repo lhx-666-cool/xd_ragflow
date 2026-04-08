@@ -109,6 +109,10 @@ def tenant_list():
         users = UserTenantService.get_tenants_by_user_id(current_user.id)
         for u in users:
             u["delta_seconds"] = delta_seconds(str(u["update_date"]))
+            email = u.get("email") or ""
+            at_pos = email.find("@")
+            if at_pos != -1:
+                u["email"] = email[:at_pos] + "@***"
         return get_json_result(data=users)
     except Exception as e:
         return server_error_response(e)

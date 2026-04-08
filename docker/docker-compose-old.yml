@@ -4,7 +4,7 @@ services:
       - elasticsearch
     image: elasticsearch:${STACK_VERSION}
     volumes:
-      - ./data/elasticsearch:/usr/share/elasticsearch/data
+      - esdata01:/usr/share/elasticsearch/data
     ports:
       - ${ES_PORT}:9200
     env_file: .env
@@ -38,7 +38,7 @@ services:
       - opensearch
     image: hub.icert.top/opensearchproject/opensearch:2.19.1
     volumes:
-      - ./data/opensearch:/usr/share/opensearch/data
+      - osdata01:/usr/share/opensearch/data
     ports:
       - ${OS_PORT}:9201
     env_file: .env
@@ -74,7 +74,7 @@ services:
       - infinity
     image: infiniflow/infinity:v0.6.2
     volumes:
-      - ./data/infinity:/var/infinity
+      - infinity_data:/var/infinity
       - ./infinity_conf.toml:/infinity_conf.toml
     command: ["-f", "/infinity_conf.toml"]
     ports:
@@ -141,7 +141,7 @@ services:
     ports:
       - ${MYSQL_PORT}:3306
     volumes:
-      - ./data/mysql:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
       - ./init.sql:/data/application/init.sql
     networks:
       - ragflow
@@ -163,7 +163,7 @@ services:
       - MINIO_ROOT_USER=${MINIO_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_PASSWORD}
     volumes:
-      - ./data/minio:/data
+      - minio_data:/data
     networks:
       - ragflow
     restart: on-failure
@@ -181,7 +181,7 @@ services:
     ports:
       - ${REDIS_PORT}:6379
     volumes:
-      - ./data/redis:/data
+      - redis_data:/data
     networks:
       - ragflow
     restart: on-failure
@@ -236,7 +236,7 @@ services:
       - ${KIBANA_PORT-5601}:5601
     env_file: .env
     volumes:
-      - ./data/kibana:/usr/share/kibana/data
+      - kibana_data:/usr/share/kibana/data
     depends_on:
       es01:
         condition: service_started
@@ -249,6 +249,24 @@ services:
       - ragflow
     restart: on-failure
 
+
+volumes:
+  esdata01:
+    driver: local
+  osdata01:
+    driver: local
+  infinity_data:
+    driver: local
+  mysql_data:
+    driver: local
+  minio_data:
+    driver: local
+  redis_data:
+    driver: local
+  tei_data:
+    driver: local
+  kibana_data:
+    driver: local
 
 networks:
   ragflow:

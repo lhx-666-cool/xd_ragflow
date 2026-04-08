@@ -662,10 +662,11 @@ def parallel_sample():
     """
     payload = request.get_json(silent=True) or {}
     model_name = (payload.get("model_name") or "").strip()
+    default_url = os.environ.get("PARALLEL_SAMPLE_URL_DEFAULT", "http://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample")
     target_url = {
-        "xdechat": "https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample",
-        "qwen-vl-default": "https://xdechat.xidian.edu.cn/api/document/qa",
-    }.get(model_name, "https://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample")
+        "xdechat": os.environ.get("PARALLEL_SAMPLE_URL_XDECHAT", "http://huitong.xidian.edu.cn/ragflow_hooks/parallel_sample"),
+        "qwen-vl-default": os.environ.get("PARALLEL_SAMPLE_URL_QWEN_VL", "http://xdechat.xidian.edu.cn/api/document/qa"),
+    }.get(model_name, default_url)
 
     try:
         import requests
