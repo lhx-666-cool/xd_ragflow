@@ -63,7 +63,7 @@ const SystemInfo = () => {
                 title={
                   <Flex align="center" gap={10}>
                     {key === 'task_executor_heartbeats' ? (
-                      <img src="/logo.svg" alt="" width={26} />
+                      <img src="/logo.svg" alt="" width={32} height={32} style={{ objectFit: 'contain' }} />
                     ) : (
                       <SvgIcon
                         name={IconMap[key as keyof typeof IconMap]}

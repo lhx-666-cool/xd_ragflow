@@ -626,10 +626,9 @@ export const useFetchExternalAgentInputs = () => {
     isFetching: loading,
     refetch,
   } = useQuery<IInputs>({
-    queryKey: [AgentApiAction.FetchExternalAgentInputs],
+    queryKey: [AgentApiAction.FetchExternalAgentInputs, sharedId],
     initialData: {} as IInputs,
     refetchOnReconnect: false,
-    refetchOnMount: false,
     refetchOnWindowFocus: false,
     gcTime: 0,
     enabled: !!sharedId,

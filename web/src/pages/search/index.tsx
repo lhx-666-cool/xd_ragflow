@@ -140,7 +140,7 @@ const SearchPage = () => {
                   <Card
                     title={
                       <Flex gap={10}>
-                        <img src="/logo.svg" alt="" width={20} />
+                        <img src="/logo.svg" alt="" width={32} height={32} style={{ objectFit: 'contain' }} />
                         {t('chat.answerTitle')}
                       </Flex>
                     }

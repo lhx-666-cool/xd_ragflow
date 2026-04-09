@@ -55,7 +55,7 @@ const MODEL_OPTIONS = [
 const DEFAULT_ASSISTANT_MESSAGE: ChatMessage = {
   id: 'assistant-initial',
   role: 'assistant',
-  content: '样式已准备就绪，稍后接入后端 API 后即可在此向文档提问并查看返回结果。',
+  content: '你好，请问你有什么问题',
 };
 
 const getChatCacheKey = (documentId?: string) =>

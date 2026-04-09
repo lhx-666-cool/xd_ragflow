@@ -165,15 +165,19 @@ class UserCanvasService(CommonService):
     @classmethod
     @DB.connection_context()
     def accessible(cls, canvas_id, tenant_id):
-        from api.db.services.user_service import UserTenantService
+        from api.db.services.user_service import TenantService
         e, c = UserCanvasService.get_by_canvas_id(canvas_id)
         if not e:
             return False
 
-        tids = [t.tenant_id for t in UserTenantService.query(user_id=tenant_id)]
-        if c["user_id"] != canvas_id and c["user_id"]  not in tids:
+        if c["user_id"] == tenant_id:
+            return True
+
+        if c.get("permission") != TenantPermission.TEAM.value:
             return False
-        return True
+
+        joined_tenants = TenantService.get_joined_tenants_by_user_id(tenant_id)
+        return any(t["tenant_id"] == c["user_id"] for t in joined_tenants)
 
 
 def completion(tenant_id, agent_id, session_id=None, **kwargs):
@@ -193,11 +197,11 @@ def completion(tenant_id, agent_id, session_id=None, **kwargs):
     else:
         e, cvs = UserCanvasService.get_by_id(agent_id)
         assert e, "Agent not found."
-        assert cvs.user_id == tenant_id, "You do not own the agent."
+        assert UserCanvasService.accessible(agent_id, tenant_id), "You do not have permission to access this agent."
         if not isinstance(cvs.dsl, str):
             cvs.dsl = json.dumps(cvs.dsl, ensure_ascii=False)
         session_id=get_uuid()
-        canvas = Canvas(cvs.dsl, tenant_id, agent_id)
+        canvas = Canvas(cvs.dsl, cvs.user_id, agent_id)
         canvas.reset()
         conv = {
             "id": session_id,
