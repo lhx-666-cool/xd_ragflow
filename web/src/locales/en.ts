@@ -694,6 +694,7 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
         'Please enter your current password to change your password.',
       model: 'Model providers',
       modelDescription: 'Configure model parameters and API KEY here.',
+      noPublicApiSupport: 'Public API access is not supported at this time.',
       team: 'Team',
       system: 'System',
       logout: 'Log out',

@@ -631,6 +631,7 @@ export default {
       passwordDescription: 'Введите текущий пароль для изменения пароля.',
       model: 'Провайдеры моделей',
       modelDescription: 'Настройте параметры моделей и API KEY.',
+      noPublicApiSupport: 'Доступ к публичному API в настоящее время не поддерживается.',
       team: 'Команда',
       system: 'Система',
       logout: 'Выйти',

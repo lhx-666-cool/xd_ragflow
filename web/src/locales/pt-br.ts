@@ -463,6 +463,7 @@ export default {
       passwordDescription: 'Digite sua senha atual para alterá-la.',
       model: 'Provedores de Modelo',
       modelDescription: 'Defina o parâmetro do modelo e a chave da API aqui.',
+      noPublicApiSupport: 'O acesso à API pública não é suportado no momento.',
       team: 'Equipe',
       system: 'Sistema',
       logout: 'Sair',

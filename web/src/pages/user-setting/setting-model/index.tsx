@@ -12,6 +12,7 @@ import { getRealModelName } from '@/utils/llm-util';
 import {
   CloseCircleOutlined,
   EditOutlined,
+  ExclamationCircleFilled,
   SettingOutlined,
 } from '@ant-design/icons';
 import {
@@ -485,6 +486,23 @@ const UserSettingModel = () => {
             clickButton={showSystemSettingModal}
           ></SettingTitle>
           <Divider></Divider>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              marginBottom: 16,
+              border: '1px solid #ff4d4f',
+              borderRadius: 6,
+              backgroundColor: '#fff2f0',
+              color: '#ff4d4f',
+              fontSize: 14,
+            }}
+          >
+            <ExclamationCircleFilled style={{ fontSize: 16, color: '#ff4d4f' }} />
+            <span>{t('noPublicApiSupport')}</span>
+          </div>
           <Collapse defaultActiveKey={['1', '2']} ghost items={items} />
         </section>
       </Spin>

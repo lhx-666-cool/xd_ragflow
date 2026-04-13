@@ -518,6 +518,7 @@ export default {
         'Vui lòng nhập mật khẩu hiện tại của bạn để thay đổi mật khẩu.',
       model: 'Nhà cung cấp mô hình',
       modelDescription: 'Đặt tham số mô hình và KHÓA API ở đây.',
+      noPublicApiSupport: 'Truy cập API công khai hiện không được hỗ trợ.',
       team: 'Nhóm',
       system: 'Hệ thống',
       logout: 'Đăng xuất',

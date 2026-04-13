@@ -554,6 +554,7 @@ export default {
       passwordDescription: '請輸入您當前的密碼以更改您的密碼。',
       model: '模型提供商',
       modelDescription: '在此設置模型參數和 API KEY。',
+      noPublicApiSupport: '暫不提供對公網api的支持',
       team: '團隊',
       api: 'API',
       logout: '登出',

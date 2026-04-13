@@ -581,6 +581,7 @@ export default {
       model: 'Modellanbieter',
       modelDescription:
         'Legen Sie hier die Modellparameter und den API-SCHLÜSSEL fest.',
+      noPublicApiSupport: 'Der Zugriff auf die öffentliche API wird derzeit nicht unterstützt.',
       team: 'Team',
       system: 'System',
       logout: 'Abmelden',

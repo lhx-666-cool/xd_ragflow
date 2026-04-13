@@ -478,6 +478,7 @@ export default {
       model: 'Fournisseurs de modèles',
       modelDescription:
         'Configurez les paramètres du modèle et la clé API ici.',
+      noPublicApiSupport: "L'accès à l'API publique n'est pas pris en charge pour le moment.",
       team: 'Équipe',
       system: 'Système',
       logout: 'Déconnexion',

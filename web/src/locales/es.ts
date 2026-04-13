@@ -297,6 +297,7 @@ export default {
       model: 'Proveedores de Modelo',
       modelDescription:
         'Configura el parámetro del modelo y la clave API aquí.',
+      noPublicApiSupport: 'El acceso a la API pública no está soportado en este momento.',
       team: 'Equipo',
       system: 'Sistema',
       logout: 'Cerrar sesión',

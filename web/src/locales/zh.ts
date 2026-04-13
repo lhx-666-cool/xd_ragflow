@@ -685,6 +685,7 @@ General：实体和关系提取提示来自 GitHub - microsoft/graphrag：基于
       passwordDescription: '请输入您当前的密码以更改您的密码。',
       model: '模型提供商',
       modelDescription: '在此设置模型参数和 API KEY。',
+      noPublicApiSupport: '暂不提供对公网api的支持',
       team: '团队',
       system: '系统',
       logout: '登出',

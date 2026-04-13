@@ -512,6 +512,7 @@ export default {
         'パスワードを変更するには、現在のパスワードを入力してください。',
       model: 'モデルプロバイダー',
       modelDescription: 'ここでモデルパラメータとAPIキーを設定します。',
+      noPublicApiSupport: '現在、公開APIへのアクセスはサポートされていません。',
       team: 'チーム',
       system: 'システム',
       logout: 'ログアウト',

@@ -470,6 +470,7 @@ export default {
         'Silakan masukkan kata sandi Anda saat ini untuk mengubah kata sandi Anda.',
       model: 'Penyedia Model',
       modelDescription: 'Atur parameter model dan Kunci API di sini.',
+      noPublicApiSupport: 'Akses API publik tidak didukung saat ini.',
       team: 'Tim',
       system: 'Sistem',
       logout: 'Keluar',
