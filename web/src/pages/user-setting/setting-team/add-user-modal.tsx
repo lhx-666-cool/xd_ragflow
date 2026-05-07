@@ -23,10 +23,7 @@ const AddingUserModal = ({
   const { t } = useTranslation();
 
   const formSchema = z.object({
-    email: z
-      .string()
-      .email()
-      .min(1, { message: t('common.required') }),
+    email: z.string().min(1, { message: t('common.required') }),
   });
 
   type FormData = z.infer<typeof formSchema>;

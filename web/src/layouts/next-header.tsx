@@ -26,10 +26,11 @@ import {
   Search,
   Sun,
 } from 'lucide-react';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'umi';
 import { BellButton } from './bell-button';
+import { TutorialDialog } from './tutorial-dialog';
 
 
 export function Header() {
@@ -37,6 +38,7 @@ export function Header() {
   const { pathname } = useLocation();
   const navigate = useNavigateWithFromState();
   const { navigateToOldProfile } = useNavigatePage();
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   const changeLanguage = useChangeLanguage();
   const { setTheme, theme } = useTheme();
@@ -139,6 +141,16 @@ export function Header() {
           {theme === 'light' ? <Sun /> : <Moon />}
         </Button>
         <BellButton></BellButton>
+        <Button
+          variant={'ghost'}
+          size={'icon'}
+          onClick={() => setTutorialOpen(true)}
+          title="使用教程"
+          className="rounded-full w-8 h-8 text-sm font-bold border border-current"
+        >
+          ?
+        </Button>
+        <TutorialDialog open={tutorialOpen} onOpenChange={setTutorialOpen} />
         <div className="relative">
           <RAGFlowAvatar
             name={nickname}
