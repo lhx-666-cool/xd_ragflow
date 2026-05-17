@@ -186,19 +186,48 @@ export function FileUploader(props: FileUploaderProps) {
     onChange: onValueChange,
   });
 
+  const allowedExts = React.useMemo(() => {
+    if (!accept) return null;
+    const exts = new Set<string>();
+    for (const extsArr of Object.values(accept)) {
+      for (const ext of extsArr) {
+        exts.add(ext.replace(/^\./, '').toLowerCase());
+      }
+    }
+    return exts.size > 0 ? exts : null;
+  }, [accept]);
+
   const onDrop = React.useCallback(
     (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
-      if (!multiple && maxFileCount === 1 && acceptedFiles.length > 1) {
+      // Filter by extension — accept prop only hints the file picker dialog
+      const filtered = allowedExts
+        ? acceptedFiles.filter((f) => {
+            const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+            return allowedExts.has(ext);
+          })
+        : acceptedFiles;
+      const blocked = allowedExts
+        ? acceptedFiles.filter((f) => {
+            const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+            return !allowedExts.has(ext);
+          })
+        : [];
+
+      if (blocked.length > 0) {
+        blocked.forEach((f) => toast.error(`${t('fileManager.unsupportedFileType', { name: f.name })}`));
+      }
+
+      if (!multiple && maxFileCount === 1 && filtered.length > 1) {
         toast.error('Cannot upload more than 1 file at a time');
         return;
       }
 
-      if ((files?.length ?? 0) + acceptedFiles.length > maxFileCount) {
+      if ((files?.length ?? 0) + filtered.length > maxFileCount) {
         toast.error(`Cannot upload more than ${maxFileCount} files`);
         return;
       }
 
-      const newFiles = acceptedFiles.map((file) =>
+      const newFiles = filtered.map((file) =>
         Object.assign(file, {
           preview: URL.createObjectURL(file),
         }),

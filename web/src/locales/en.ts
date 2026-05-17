@@ -950,6 +950,7 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
         'Each file must not exceed 10MB, and the total number of files must not exceed 128.',
       destinationFolder: 'Destination folder',
       pleaseUploadAtLeastOneFile: 'Please upload at least one file',
+      unsupportedFileType: 'Unsupported file type, skipped: {{name}}',
     },
     flow: {
       recommended: 'Recommended',

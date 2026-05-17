@@ -109,11 +109,17 @@ async function fetchDocumentBlob(id: string, mimeType?: FileMimeType) {
 
 export async function previewHtmlFile(id: string) {
   const blob = await fetchDocumentBlob(id, FileMimeType.Html);
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.click();
-  URL.revokeObjectURL(url);
+  const html = await blob.text();
+
+  // Display raw HTML source as plain text — no execution, no rendering.
+  const win = window.open('', '_blank');
+  if (!win || !win.document.body) return;
+  const pre = win.document.createElement('pre');
+  pre.style.cssText =
+    'margin:0;padding:16px;white-space:pre-wrap;word-break:break-all;font-size:13px';
+  pre.textContent = html;
+  win.document.body.style.cssText = 'margin:0';
+  win.document.body.appendChild(pre);
 }
 
 export const downloadFileFromBlob = (blob: Blob, name?: string) => {

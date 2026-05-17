@@ -197,3 +197,5 @@ ragflow_cli.egg-info
 backup
 
 .claude
+
+*.tar.gz

@@ -12,12 +12,22 @@ import {
   Upload,
   UploadFile,
   UploadProps,
+  message,
 } from 'antd';
 import { Dispatch, SetStateAction, useState } from 'react';
 
 import styles from './index.less';
 
 const { Dragger } = Upload;
+
+const ALLOWED_EXTENSIONS = new Set([
+  'pdf',
+  'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx',
+  'txt', 'csv', 'md',
+  'jpg', 'jpeg', 'png'
+]);
+
+const ACCEPT_ATTR = Array.from(ALLOWED_EXTENSIONS).map((ext) => `.${ext}`).join(',');
 
 const FileUpload = ({
   directory,
@@ -33,6 +43,7 @@ const FileUpload = ({
   const { t } = useTranslate('fileManager');
   const props: UploadProps = {
     multiple: true,
+    accept: directory ? undefined : ACCEPT_ATTR,
     onRemove: (file) => {
       const index = fileList.indexOf(file);
       const newFileList = fileList.slice();
@@ -40,6 +51,13 @@ const FileUpload = ({
       setFileList(newFileList);
     },
     beforeUpload: (file: UploadFile) => {
+      if (!directory) {
+        const ext = (file.name ?? '').split('.').pop()?.toLowerCase() ?? '';
+        if (!ALLOWED_EXTENSIONS.has(ext)) {
+          message.error(t('unsupportedFileType', { name: file.name }));
+          return Upload.LIST_IGNORE;
+        }
+      }
       setFileList((pre) => {
         return [...pre, file];
       });

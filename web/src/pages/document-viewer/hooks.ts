@@ -85,12 +85,12 @@ export const useFetchDocx = (filePath: string) => {
         )
         .then((result) => {
           setSucceed(true);
-          const docEl = document.createElement('div');
-          docEl.className = 'document-container';
-          docEl.innerHTML = result.value;
           const container = containerRef.current;
           if (container) {
-            container.innerHTML = docEl.outerHTML;
+            const docEl = document.createElement('div');
+            docEl.className = 'document-container';
+            docEl.innerHTML = result.value;
+            container.replaceChildren(docEl);
           }
         })
         .catch(() => {
