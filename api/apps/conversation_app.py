@@ -24,6 +24,7 @@ from api.db import LLMType
 from api.db.db_models import APIToken
 from api.db.services.conversation_service import ConversationService, structure_answer
 from api.db.services.dialog_service import DialogService, ask, chat, gen_mindmap
+from api.db.services.llm_config_service import sync_llm_config_from_first_user
 from api.db.services.llm_service import LLMBundle
 from api.db.services.search_service import SearchService
 from api.db.services.tenant_llm_service import TenantLLMService
@@ -200,6 +201,7 @@ def completion():
         e, dia = DialogService.get_by_id(conv.dialog_id)
         if not e:
             return get_data_error_result(message="Dialog not found!")
+        sync_llm_config_from_first_user(dia.tenant_id)
         del req["conversation_id"]
         del req["messages"]
 
@@ -217,6 +219,7 @@ def completion():
             dia.llm_setting = chat_model_config
 
         is_embedded = bool(chat_model_id)
+
         def stream():
             nonlocal dia, msg, req, conv
             try:
