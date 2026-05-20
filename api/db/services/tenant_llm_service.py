@@ -58,10 +58,6 @@ class TenantLLMService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_my_llms(cls, tenant_id):
-        from api.db.services.llm_config_service import sync_llm_config_from_first_user
-
-        sync_llm_config_from_first_user(tenant_id)
-
         fields = [cls.model.llm_factory, LLMFactories.logo, LLMFactories.tags, cls.model.model_type, cls.model.llm_name, cls.model.used_tokens]
         objs = cls.model.select(*fields).join(LLMFactories, on=(cls.model.llm_factory == LLMFactories.name)).where(cls.model.tenant_id == tenant_id, ~cls.model.api_key.is_null()).dicts()
 
@@ -89,10 +85,8 @@ class TenantLLMService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_model_config(cls, tenant_id, llm_type, llm_name=None):
-        from api.db.services.llm_config_service import sync_llm_config_from_first_user
         from api.db.services.llm_service import LLMService
 
-        sync_llm_config_from_first_user(tenant_id)
         e, tenant = TenantService.get_by_id(tenant_id)
         if not e:
             raise LookupError("Tenant not found")

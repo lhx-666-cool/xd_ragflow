@@ -34,7 +34,7 @@ from api.db import FileType, UserTenantRole, StatusEnum
 from api.db.db_models import TenantLLM
 from api.db.services.api_service import APITokenService
 from api.db.services.file_service import FileService
-from api.db.services.llm_config_service import sync_all_llm_configs_from_first_user, sync_llm_config_from_first_user
+from api.db.services.llm_config_service import fanout_llm_config_from_admin, is_first_user, sync_llm_config_from_first_user
 from api.db.services.llm_service import get_init_tenant_llm
 from api.db.services.tenant_llm_service import TenantLLMService
 from api.db.services.user_service import TenantService, UserService, UserTenantService
@@ -771,10 +771,6 @@ def _get_first_user():
     return users[0] if users else None
 
 
-def copy_llm_config_from_first_user(user_id):
-    return sync_llm_config_from_first_user(user_id)
-
-
 def _ensure_user_in_default_team(user_id):
     first_user = _get_first_user()
     if not first_user or first_user.id == user_id:
@@ -984,7 +980,6 @@ def tenant_info():
               description: Embedding model ID.
     """
     try:
-        copy_llm_config_from_first_user(current_user.id)
         tenants = TenantService.get_info_by(current_user.id)
         if not tenants:
             return get_data_error_result(message="Tenant not found!")
@@ -1036,8 +1031,10 @@ def set_tenant_info():
     req = request.json
     try:
         tid = req.pop("tenant_id")
+        if not is_first_user(current_user.id):
+            return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
         TenantService.update_by_id(tid, req)
-        sync_all_llm_configs_from_first_user(tid)
+        fanout_llm_config_from_admin(current_user.id)
         return get_json_result(data=True)
     except Exception as e:
         return server_error_response(e)

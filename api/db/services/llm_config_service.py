@@ -1,3 +1,5 @@
+import logging
+import threading
 from datetime import datetime
 
 from api.db import StatusEnum
@@ -20,13 +22,28 @@ def _get_first_user():
     return users[0] if users else None
 
 
+def is_first_user(user_id):
+    """Return True when ``user_id`` is the system-wide model administrator.
+
+    The first registered user owns the canonical model configuration; every
+    other tenant mirrors it. Callers that mutate model state must allow only
+    this user through.
+    """
+    first_user = _get_first_user()
+    return first_user is not None and first_user.id == user_id
+
+
 @DB.connection_context()
 def sync_llm_config_from_first_user(user_id):
-    """Mirror the first registered user's model settings to the given user's tenant.
+    """Mirror the first registered user's model settings to ``user_id``'s tenant.
 
-    The first registered user acts as the system-wide model administrator. Normal
-    users keep their own token usage counters, but model definitions and default
-    model selections follow the administrator exactly.
+    Default model selections (llm_id, embd_id, ...) and ``tenant_llm`` rows are
+    overwritten so the tenant matches the administrator exactly. Per-tenant
+    ``used_tokens`` counters are preserved because they are usage telemetry,
+    not configuration.
+
+    Returns True when a sync ran, False when the call was a no-op (target
+    tenant missing, target *is* the admin, or admin tenant missing).
     """
     tenant_info = TenantService.get_info_by(user_id)
     if not tenant_info:
@@ -93,21 +110,45 @@ def sync_llm_config_from_first_user(user_id):
     return True
 
 
-def copy_llm_config_from_first_user(user_id):
-    return sync_llm_config_from_first_user(user_id)
+def _fanout_to_all_users(first_user_id):
+    synced = 0
+    for user in UserService.query(status=StatusEnum.VALID.value):
+        if user.id == first_user_id:
+            continue
+        try:
+            if sync_llm_config_from_first_user(user.id):
+                synced += 1
+        except Exception:
+            logging.exception("sync_llm_config_from_first_user failed for user_id=%s", user.id)
+    return synced
 
 
-def sync_all_llm_configs_from_first_user(changed_user_id=None):
+def fanout_llm_config_from_admin(changed_user_id=None, blocking=False):
+    """Propagate the administrator's model configuration to every other user.
+
+    The ``changed_user_id`` guard makes this safe to call from any write
+    endpoint: the fanout only runs when the change actually originated from
+    the administrator. By default the work is dispatched on a background
+    daemon thread so admin write requests stay responsive; pass
+    ``blocking=True`` for tests that need deterministic completion.
+
+    Returns the number of users synced when ``blocking`` is True, otherwise 0
+    (the background thread reports its own count via logging on failure).
+    """
     first_user = _get_first_user()
     if not first_user:
         return 0
     if changed_user_id and changed_user_id != first_user.id:
         return 0
 
-    synced_count = 0
-    for user in UserService.query(status=StatusEnum.VALID.value):
-        if user.id == first_user.id:
-            continue
-        if sync_llm_config_from_first_user(user.id):
-            synced_count += 1
-    return synced_count
+    if blocking:
+        return _fanout_to_all_users(first_user.id)
+
+    thread = threading.Thread(
+        target=_fanout_to_all_users,
+        args=(first_user.id,),
+        name="llm-config-fanout",
+        daemon=True,
+    )
+    thread.start()
+    return 0

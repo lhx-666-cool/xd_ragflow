@@ -21,7 +21,6 @@ from api import settings
 from api.db import StatusEnum
 from api.db.services.dialog_service import DialogService
 from api.db.services.knowledgebase_service import KnowledgebaseService
-from api.db.services.llm_config_service import sync_llm_config_from_first_user
 from api.db.services.tenant_llm_service import TenantLLMService
 from api.db.services.user_service import TenantService
 from api.utils import get_uuid
@@ -31,7 +30,6 @@ from api.utils.api_utils import check_duplicate_ids, get_error_data_result, get_
 @manager.route("/chats", methods=["POST"])  # noqa: F821
 @token_required
 def create(tenant_id):
-    sync_llm_config_from_first_user(tenant_id)
     req = request.json
     ids = [i for i in req.get("dataset_ids", []) if i]
     for kb_id in ids:
@@ -149,7 +147,6 @@ def create(tenant_id):
 @manager.route("/chats/<chat_id>", methods=["PUT"])  # noqa: F821
 @token_required
 def update(tenant_id, chat_id):
-    sync_llm_config_from_first_user(tenant_id)
     if not DialogService.query(tenant_id=tenant_id, id=chat_id, status=StatusEnum.VALID.value):
         return get_error_data_result(message="You do not own the chat")
     req = request.json

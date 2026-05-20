@@ -18,7 +18,8 @@ import json
 import os
 from flask import request
 from flask_login import login_required, current_user
-from api.db.services.llm_config_service import sync_all_llm_configs_from_first_user, sync_llm_config_from_first_user
+from api import settings
+from api.db.services.llm_config_service import fanout_llm_config_from_admin, is_first_user
 from api.db.services.tenant_llm_service import LLMFactoriesService, TenantLLMService
 from api.db.services.llm_service import LLMService
 from api.utils.api_utils import server_error_response, get_data_error_result, validate_request
@@ -54,6 +55,8 @@ def factories():
 @login_required
 @validate_request("llm_factory", "api_key")
 def set_api_key():
+    if not is_first_user(current_user.id):
+        return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
     req = request.json
     # test if api key works
     chat_passed, embd_passed, rerank_passed = False, False, False
@@ -117,7 +120,7 @@ def set_api_key():
                 max_tokens=llm_config["max_tokens"],
             )
 
-    sync_all_llm_configs_from_first_user(current_user.id)
+    fanout_llm_config_from_admin(current_user.id)
     return get_json_result(data=True)
 
 
@@ -125,6 +128,8 @@ def set_api_key():
 @login_required
 @validate_request("llm_factory")
 def add_llm():
+    if not is_first_user(current_user.id):
+        return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
     req = request.json
     factory = req["llm_factory"]
     api_key = req.get("api_key", "x")
@@ -260,7 +265,7 @@ def add_llm():
     if not TenantLLMService.filter_update([TenantLLM.tenant_id == current_user.id, TenantLLM.llm_factory == factory, TenantLLM.llm_name == llm["llm_name"]], llm):
         TenantLLMService.save(**llm)
 
-    sync_all_llm_configs_from_first_user(current_user.id)
+    fanout_llm_config_from_admin(current_user.id)
     return get_json_result(data=True)
 
 
@@ -268,9 +273,11 @@ def add_llm():
 @login_required
 @validate_request("llm_factory", "llm_name")
 def delete_llm():
+    if not is_first_user(current_user.id):
+        return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
     req = request.json
     TenantLLMService.filter_delete([TenantLLM.tenant_id == current_user.id, TenantLLM.llm_factory == req["llm_factory"], TenantLLM.llm_name == req["llm_name"]])
-    sync_all_llm_configs_from_first_user(current_user.id)
+    fanout_llm_config_from_admin(current_user.id)
     return get_json_result(data=True)
 
 
@@ -278,9 +285,11 @@ def delete_llm():
 @login_required
 @validate_request("llm_factory")
 def delete_factory():
+    if not is_first_user(current_user.id):
+        return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
     req = request.json
     TenantLLMService.filter_delete([TenantLLM.tenant_id == current_user.id, TenantLLM.llm_factory == req["llm_factory"]])
-    sync_all_llm_configs_from_first_user(current_user.id)
+    fanout_llm_config_from_admin(current_user.id)
     return get_json_result(data=True)
 
 
@@ -288,7 +297,6 @@ def delete_factory():
 @login_required
 def my_llms():
     try:
-        sync_llm_config_from_first_user(current_user.id)
         include_details = request.args.get("include_details", "false").lower() == "true"
 
         if include_details:
@@ -329,7 +337,6 @@ def list_app():
     weighted = []
     model_type = request.args.get("model_type")
     try:
-        sync_llm_config_from_first_user(current_user.id)
         objs = TenantLLMService.query(tenant_id=current_user.id)
         facts = set([o.to_dict()["llm_factory"] for o in objs if o.api_key])
         llms = LLMService.get_all()
