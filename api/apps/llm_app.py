@@ -19,7 +19,7 @@ import os
 from flask import request
 from flask_login import login_required, current_user
 from api import settings
-from api.db.services.llm_config_service import fanout_llm_config_from_admin, is_first_user
+from api.db.services.llm_config_service import delete_admin_llm_config, fanout_llm_config_from_admin, is_first_user
 from api.db.services.tenant_llm_service import LLMFactoriesService, TenantLLMService
 from api.db.services.llm_service import LLMService
 from api.utils.api_utils import server_error_response, get_data_error_result, validate_request
@@ -276,7 +276,7 @@ def delete_llm():
     if not is_first_user(current_user.id):
         return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
     req = request.json
-    TenantLLMService.filter_delete([TenantLLM.tenant_id == current_user.id, TenantLLM.llm_factory == req["llm_factory"], TenantLLM.llm_name == req["llm_name"]])
+    delete_admin_llm_config(current_user.id, req["llm_factory"], req["llm_name"])
     fanout_llm_config_from_admin(current_user.id)
     return get_json_result(data=True)
 
@@ -288,7 +288,7 @@ def delete_factory():
     if not is_first_user(current_user.id):
         return get_data_error_result(message="Only the administrator can manage models.", code=settings.RetCode.FORBIDDEN)
     req = request.json
-    TenantLLMService.filter_delete([TenantLLM.tenant_id == current_user.id, TenantLLM.llm_factory == req["llm_factory"]])
+    delete_admin_llm_config(current_user.id, req["llm_factory"])
     fanout_llm_config_from_admin(current_user.id)
     return get_json_result(data=True)
 

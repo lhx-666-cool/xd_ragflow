@@ -12,6 +12,10 @@ from common.time_utils import current_timestamp, datetime_format
 DEFAULT_MODEL_FIELDS = ("llm_id", "embd_id", "asr_id", "img2txt_id", "rerank_id", "tts_id")
 TENANT_LLM_SYNC_FIELDS = ("model_type", "api_key", "api_base", "max_tokens")
 
+_fanout_lock = threading.Lock()
+_fanout_running = False
+_fanout_pending = False
+
 
 def _get_first_user():
     users = UserService.query(
@@ -58,8 +62,7 @@ def sync_llm_config_from_first_user(user_id):
         return False
     source = source_tenants[0]
 
-    update_fields = {field: source.get(field) for field in DEFAULT_MODEL_FIELDS if field in source}
-    TenantService.update_by_id(user_id, update_fields)
+    update_fields = {field: source.get(field) for field in DEFAULT_MODEL_FIELDS if field in source and source.get(field) is not None}
 
     source_llms = TenantLLMService.query(tenant_id=first_user.id)
     source_by_key = {(llm.llm_factory, llm.llm_name): llm for llm in source_llms}
@@ -68,6 +71,9 @@ def sync_llm_config_from_first_user(user_id):
     now = current_timestamp()
     now_date = datetime_format(datetime.now())
     with DB.atomic():
+        if update_fields:
+            TenantService.update_by_id(user_id, update_fields)
+
         for llm_factory, llm_name in existing_by_key:
             if (llm_factory, llm_name) not in source_by_key:
                 TenantLLM.delete().where(
@@ -110,6 +116,61 @@ def sync_llm_config_from_first_user(user_id):
     return True
 
 
+def _tenant_has_model(tenant_id, llm_name, llm_factory=None):
+    filters = [TenantLLM.tenant_id == tenant_id, TenantLLM.llm_name == llm_name]
+    if llm_factory:
+        filters.append(TenantLLM.llm_factory == llm_factory)
+    return TenantLLM.select(TenantLLM.llm_name).where(*filters).exists()
+
+
+def _default_points_to_deleted_model(tenant_id, model_id, deleted_factory, deleted_llm_name=None):
+    if not model_id:
+        return False
+
+    model_name, model_factory = TenantLLMService.split_model_name_and_factory(model_id)
+    if model_factory:
+        if model_factory != deleted_factory:
+            return False
+        return deleted_llm_name is None or model_name == deleted_llm_name
+
+    if deleted_llm_name and model_name != deleted_llm_name:
+        return False
+    return not _tenant_has_model(tenant_id, model_name)
+
+
+def _clear_deleted_default_models(tenant_id, deleted_factory, deleted_llm_name=None):
+    found, tenant = TenantService.get_by_id(tenant_id)
+    if not found:
+        return []
+
+    update_fields = {}
+    for field in DEFAULT_MODEL_FIELDS:
+        model_id = getattr(tenant, field, None)
+        if _default_points_to_deleted_model(tenant_id, model_id, deleted_factory, deleted_llm_name):
+            update_fields[field] = ""
+
+    cleared_fields = list(update_fields.keys())
+    if update_fields:
+        TenantService.update_by_id(tenant_id, update_fields)
+    return cleared_fields
+
+
+@DB.connection_context()
+def delete_admin_llm_config(admin_id, llm_factory, llm_name=None):
+    """Delete administrator model rows and clear default model fields that point to them."""
+    filters = [
+        TenantLLM.tenant_id == admin_id,
+        TenantLLM.llm_factory == llm_factory,
+    ]
+    if llm_name is not None:
+        filters.append(TenantLLM.llm_name == llm_name)
+
+    with DB.atomic():
+        deleted_count = TenantLLM.delete().where(*filters).execute()
+        cleared_fields = _clear_deleted_default_models(admin_id, llm_factory, llm_name)
+    return deleted_count, cleared_fields
+
+
 def _fanout_to_all_users(first_user_id):
     synced = 0
     for user in UserService.query(status=StatusEnum.VALID.value):
@@ -121,6 +182,22 @@ def _fanout_to_all_users(first_user_id):
         except Exception:
             logging.exception("sync_llm_config_from_first_user failed for user_id=%s", user.id)
     return synced
+
+
+def _coalesced_fanout_worker(first_user_id):
+    global _fanout_pending, _fanout_running
+
+    while True:
+        try:
+            _fanout_to_all_users(first_user_id)
+        except Exception:
+            logging.exception("llm config fanout failed")
+
+        with _fanout_lock:
+            if not _fanout_pending:
+                _fanout_running = False
+                return
+            _fanout_pending = False
 
 
 def fanout_llm_config_from_admin(changed_user_id=None, blocking=False):
@@ -144,8 +221,16 @@ def fanout_llm_config_from_admin(changed_user_id=None, blocking=False):
     if blocking:
         return _fanout_to_all_users(first_user.id)
 
+    global _fanout_pending, _fanout_running
+    with _fanout_lock:
+        if _fanout_running:
+            _fanout_pending = True
+            return 0
+        _fanout_running = True
+        _fanout_pending = False
+
     thread = threading.Thread(
-        target=_fanout_to_all_users,
+        target=_coalesced_fanout_worker,
         args=(first_user.id,),
         name="llm-config-fanout",
         daemon=True,
