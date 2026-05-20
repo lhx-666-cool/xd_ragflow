@@ -10,6 +10,7 @@ export interface IUserInfo {
   is_anonymous: string;
   is_authenticated: string;
   is_superuser: boolean;
+  is_admin?: boolean;
   language: string;
   last_login_time: string;
   login_channel: string;

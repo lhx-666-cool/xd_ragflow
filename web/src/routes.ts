@@ -48,6 +48,7 @@ export enum Routes {
   ChatShare = `${Chats}/share`,
   ChatWidget = `${Chats}/widget`,
   UserSetting = '/user-setting',
+  Dashboard = '/dashboard',
   DataSetOverview = '/dataset-overview',
   DataSetSetting = '/dataset-setting',
   DataflowResult = '/dataflow-result',
@@ -406,6 +407,10 @@ const routes = [
       {
         path: `/user-setting${Routes.Mcp}`,
         component: `@/pages${Routes.ProfileMcp}`,
+      },
+      {
+        path: `/user-setting${Routes.Dashboard}`,
+        component: '@/pages/user-setting/setting-dashboard',
       },
     ],
   },

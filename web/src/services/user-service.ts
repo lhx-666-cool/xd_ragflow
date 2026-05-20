@@ -9,6 +9,7 @@ const {
   setting,
   user_info,
   tenant_info,
+  dashboardStats,
   factories_list,
   llm_list,
   my_llm,
@@ -45,6 +46,10 @@ const methods = {
   },
   user_info: {
     url: user_info,
+    method: 'get',
+  },
+  dashboardStats: {
+    url: dashboardStats,
     method: 'get',
   },
   get_tenant_info: {

@@ -70,9 +70,7 @@ swagger = Swagger(
             "description": "",
             "version": "1.0.0",
         },
-        "securityDefinitions": {
-            "ApiKeyAuth": {"type": "apiKey", "name": "Authorization", "in": "header"}
-        },
+        "securityDefinitions": {"ApiKeyAuth": {"type": "apiKey", "name": "Authorization", "in": "header"}},
     },
 )
 
@@ -85,9 +83,7 @@ app.errorhandler(Exception)(server_error_response)
 # app.config["LOGIN_DISABLED"] = True
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
-app.config["MAX_CONTENT_LENGTH"] = int(
-    os.environ.get("MAX_CONTENT_LENGTH", 1024 * 1024 * 1024)
-)
+app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", 1024 * 1024 * 1024))
 
 Session(app)
 login_manager = LoginManager()
@@ -97,12 +93,8 @@ commands.register_commands(app)
 
 
 def search_pages_path(pages_dir):
-    app_path_list = [
-        path for path in pages_dir.glob("*_app.py") if not path.name.startswith(".")
-    ]
-    api_path_list = [
-        path for path in pages_dir.glob("*sdk/*.py") if not path.name.startswith(".")
-    ]
+    app_path_list = [path for path in pages_dir.glob("*_app.py") if not path.name.startswith(".")]
+    api_path_list = [path for path in pages_dir.glob("*sdk/*.py") if not path.name.startswith(".")]
     app_path_list.extend(api_path_list)
     return app_path_list
 
@@ -111,9 +103,7 @@ def register_page(page_path):
     path = f"{page_path}"
 
     page_name = page_path.stem.removesuffix("_app")
-    module_name = ".".join(
-        page_path.parts[page_path.parts.index("api"): -1] + (page_name,)
-    )
+    module_name = ".".join(page_path.parts[page_path.parts.index("api") : -1] + (page_name,))
 
     spec = spec_from_file_location(module_name, page_path)
     page = module_from_spec(spec)
@@ -123,9 +113,7 @@ def register_page(page_path):
     spec.loader.exec_module(page)
     page_name = getattr(page, "page_name", page_name)
     sdk_path = "\\sdk\\" if sys.platform.startswith("win") else "/sdk/"
-    url_prefix = (
-        f"/api/{API_VERSION}" if sdk_path in path else f"/{API_VERSION}/{page_name}"
-    )
+    url_prefix = f"/api/{API_VERSION}" if sdk_path in path else f"/{API_VERSION}/{page_name}"
 
     app.register_blueprint(page.manager, url_prefix=url_prefix)
     return url_prefix
@@ -137,9 +125,7 @@ pages_dir = [
     Path(__file__).parent.parent / "api" / "apps" / "sdk",
 ]
 
-client_urls_prefix = [
-    register_page(path) for dir in pages_dir for path in search_pages_path(dir)
-]
+client_urls_prefix = [register_page(path) for dir in pages_dir for path in search_pages_path(dir)]
 
 
 @login_manager.request_loader
@@ -159,13 +145,17 @@ def load_user(web_request):
                 logging.warning(f"Authentication attempt with invalid token format: {len(access_token)} chars")
                 return None
 
-            user = UserService.query(
-                access_token=access_token, status=StatusEnum.VALID.value
-            )
+            user = UserService.query(access_token=access_token, status=StatusEnum.VALID.value)
             if user:
                 if not user[0].access_token or not user[0].access_token.strip():
                     logging.warning(f"User {user[0].email} has empty access_token in database")
                     return None
+                try:
+                    from api.db.services.user_activity_log_service import UserActivityLogService
+
+                    UserActivityLogService.touch(user[0].id)
+                except Exception:
+                    logging.exception("UserActivityLogService.touch failed in load_user")
                 return user[0]
             else:
                 return None

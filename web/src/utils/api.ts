@@ -10,6 +10,7 @@ export default {
   register: `${api_host}/user/register`,
   setting: `${api_host}/user/setting`,
   user_info: `${api_host}/user/info`,
+  dashboardStats: `${api_host}/user/dashboard/stats`,
   tenant_info: `${api_host}/user/tenant_info`,
   set_tenant_info: `${api_host}/user/set_tenant_info`,
   login_channels: `${api_host}/user/login/channels`,

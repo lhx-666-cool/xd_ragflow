@@ -259,19 +259,13 @@ class RetryingPooledMySQLDatabase(PooledMySQLDatabase):
                 return super().execute_sql(sql, params, commit)
             except (OperationalError, InterfaceError) as e:
                 error_codes = [2013, 2006]
-                error_messages = ['', 'Lost connection']
-                should_retry = (
-                    (hasattr(e, 'args') and e.args and e.args[0] in error_codes) or
-                    (str(e) in error_messages) or
-                    (hasattr(e, '__class__') and e.__class__.__name__ == 'InterfaceError')
-                )
+                error_messages = ["", "Lost connection"]
+                should_retry = (hasattr(e, "args") and e.args and e.args[0] in error_codes) or (str(e) in error_messages) or (hasattr(e, "__class__") and e.__class__.__name__ == "InterfaceError")
 
                 if should_retry and attempt < self.max_retries:
-                    logging.warning(
-                        f"Database connection issue (attempt {attempt+1}/{self.max_retries}): {e}"
-                    )
+                    logging.warning(f"Database connection issue (attempt {attempt + 1}/{self.max_retries}): {e}")
                     self._handle_connection_loss()
-                    time.sleep(self.retry_delay * (2 ** attempt))
+                    time.sleep(self.retry_delay * (2**attempt))
                 else:
                     logging.error(f"DB execution failure: {e}")
                     raise
@@ -297,20 +291,14 @@ class RetryingPooledMySQLDatabase(PooledMySQLDatabase):
                 return super().begin()
             except (OperationalError, InterfaceError) as e:
                 error_codes = [2013, 2006]
-                error_messages = ['', 'Lost connection']
+                error_messages = ["", "Lost connection"]
 
-                should_retry = (
-                    (hasattr(e, 'args') and e.args and e.args[0] in error_codes) or
-                    (str(e) in error_messages) or
-                    (hasattr(e, '__class__') and e.__class__.__name__ == 'InterfaceError')
-                )
+                should_retry = (hasattr(e, "args") and e.args and e.args[0] in error_codes) or (str(e) in error_messages) or (hasattr(e, "__class__") and e.__class__.__name__ == "InterfaceError")
 
                 if should_retry and attempt < self.max_retries:
-                    logging.warning(
-                        f"Lost connection during transaction (attempt {attempt+1}/{self.max_retries})"
-                    )
+                    logging.warning(f"Lost connection during transaction (attempt {attempt + 1}/{self.max_retries})")
                     self._handle_connection_loss()
-                    time.sleep(self.retry_delay * (2 ** attempt))
+                    time.sleep(self.retry_delay * (2**attempt))
                 else:
                     raise
 
@@ -333,17 +321,14 @@ class RetryingPooledPostgresqlDatabase(PooledPostgresqlDatabase):
                 # 08006: connection_failure
                 # 08003: connection_does_not_exist
                 # 08000: connection_exception
-                error_messages = ['connection', 'server closed', 'connection refused',
-                                'no connection to the server', 'terminating connection']
+                error_messages = ["connection", "server closed", "connection refused", "no connection to the server", "terminating connection"]
 
                 should_retry = any(msg in str(e).lower() for msg in error_messages)
 
                 if should_retry and attempt < self.max_retries:
-                    logging.warning(
-                        f"PostgreSQL connection issue (attempt {attempt+1}/{self.max_retries}): {e}"
-                    )
+                    logging.warning(f"PostgreSQL connection issue (attempt {attempt + 1}/{self.max_retries}): {e}")
                     self._handle_connection_loss()
-                    time.sleep(self.retry_delay * (2 ** attempt))
+                    time.sleep(self.retry_delay * (2**attempt))
                 else:
                     logging.error(f"PostgreSQL execution failure: {e}")
                     raise
@@ -366,17 +351,14 @@ class RetryingPooledPostgresqlDatabase(PooledPostgresqlDatabase):
             try:
                 return super().begin()
             except (OperationalError, InterfaceError) as e:
-                error_messages = ['connection', 'server closed', 'connection refused',
-                                'no connection to the server', 'terminating connection']
+                error_messages = ["connection", "server closed", "connection refused", "no connection to the server", "terminating connection"]
 
                 should_retry = any(msg in str(e).lower() for msg in error_messages)
 
                 if should_retry and attempt < self.max_retries:
-                    logging.warning(
-                        f"PostgreSQL connection lost during transaction (attempt {attempt+1}/{self.max_retries})"
-                    )
+                    logging.warning(f"PostgreSQL connection lost during transaction (attempt {attempt + 1}/{self.max_retries})")
                     self._handle_connection_loss()
-                    time.sleep(self.retry_delay * (2 ** attempt))
+                    time.sleep(self.retry_delay * (2**attempt))
                 else:
                     raise
 
@@ -398,13 +380,11 @@ class BaseDataBase:
         db_name = database_config.pop("name")
 
         pool_config = {
-            'max_retries': 5,
-            'retry_delay': 1,
+            "max_retries": 5,
+            "retry_delay": 1,
         }
         database_config.update(pool_config)
-        self.database_connection = PooledDatabase[settings.DATABASE_TYPE.upper()].value(
-            db_name, **database_config
-        )
+        self.database_connection = PooledDatabase[settings.DATABASE_TYPE.upper()].value(db_name, **database_config)
         # self.database_connection = PooledDatabase[settings.DATABASE_TYPE.upper()].value(db_name, **database_config)
         logging.info("init database on cluster mode successfully")
 
@@ -1044,6 +1024,17 @@ class PipelineOperationLog(DataBaseModel):
 
     class Meta:
         db_table = "pipeline_operation_log"
+
+
+class UserActivityLog(DataBaseModel):
+    user_id = CharField(max_length=32, null=False)
+    activity_date = CharField(max_length=10, null=False, index=True, help_text="YYYY-MM-DD bucket for DAU aggregation")
+    first_seen_at = DateTimeField(null=False, index=True)
+    last_seen_at = DateTimeField(null=False, index=True)
+
+    class Meta:
+        db_table = "user_activity_log"
+        primary_key = CompositeKey("user_id", "activity_date")
 
 
 def migrate_db():

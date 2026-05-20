@@ -11,24 +11,31 @@ import {
 } from '@/hooks/use-user-setting-request';
 import { cn } from '@/lib/utils';
 import { Routes } from '@/routes';
-import { Banknote, Box, Cog, Unplug, User, Users } from 'lucide-react';
-import { useEffect } from 'react';
+import {
+  Banknote,
+  BarChart3,
+  Box,
+  Cog,
+  Unplug,
+  User,
+  Users,
+} from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 import { useHandleMenuClick } from './hooks';
 
-const menuItems = [
+const baseMenuItems: Array<{
+  icon: typeof User;
+  label: string;
+  key: Routes;
+  adminOnly?: boolean;
+}> = [
   { icon: User, label: 'Profile', key: Routes.Profile },
   { icon: Users, label: 'Team', key: Routes.Team },
   { icon: Box, label: 'Model Providers', key: Routes.Model },
   // { icon: Unplug, label: 'API', key: Routes.Api }, // Hidden: API menu item
-  // {
-  //   icon: MessageSquareQuote,
-  //   label: 'Prompt Templates',
-  //   key: Routes.Profile,
-  // },
-  // { icon: TextSearch, label: 'Retrieval Templates', key: Routes.Profile },
   // { icon: Cog, label: 'System', key: Routes.System }, // Hidden: System menu item
-  // { icon: Banknote, label: 'Plan', key: Routes.Plan },
   { icon: Banknote, label: 'MCP', key: Routes.Mcp },
+  { icon: BarChart3, label: 'Dashboard', key: Routes.Dashboard, adminOnly: true },
 ];
 
 export function SideBar() {
@@ -42,6 +49,10 @@ export function SideBar() {
     }
   }, [fetchSystemVersion]);
   const { logout } = useLogout();
+  const menuItems = useMemo(
+    () => baseMenuItems.filter((it) => !it.adminOnly || userInfo?.is_admin),
+    [userInfo?.is_admin],
+  );
 
   return (
     <aside className="w-[303px] bg-bg-base flex flex-col">

@@ -35,6 +35,7 @@ from api.db.db_models import TenantLLM
 from api.db.services.api_service import APITokenService
 from api.db.services.file_service import FileService
 from api.db.services.llm_config_service import fanout_llm_config_from_admin, is_first_user, sync_llm_config_from_first_user
+from api.db.services.user_activity_log_service import UserActivityLogService, model_usage_summary
 from api.db.services.llm_service import get_init_tenant_llm
 from api.db.services.tenant_llm_service import TenantLLMService
 from api.db.services.user_service import TenantService, UserService, UserTenantService
@@ -134,6 +135,7 @@ def login():
         response_data = user.to_json()
         user.access_token = get_uuid()
         login_user(user)
+
         user.update_time = (current_timestamp(),)
         user.update_date = (datetime_format(datetime.now()),)
         user.save()
@@ -272,6 +274,7 @@ def login_with_ticket():
         )
 
     login_user(user)
+
     user.update_time = (current_timestamp(),)
     user.update_date = (datetime_format(datetime.now()),)
     user.save()
@@ -381,6 +384,7 @@ def oauth_callback(channel):
                 # Try to log in
                 user = users[0]
                 login_user(user)
+
                 return redirect(f"/?auth={user.get_id()}")
 
             except Exception as e:
@@ -395,6 +399,7 @@ def oauth_callback(channel):
             return redirect("/?error=user_inactive")
 
         login_user(user)
+
         user.save()
         return redirect(f"/?auth={user.get_id()}")
     except Exception as e:
@@ -475,6 +480,7 @@ def github_callback():
             # Try to log in
             user = users[0]
             login_user(user)
+
             return redirect("/?auth=%s" % user.get_id())
         except Exception as e:
             rollback_user_registration(user_id)
@@ -487,6 +493,7 @@ def github_callback():
     if user and hasattr(user, "is_active") and user.is_active == "0":
         return redirect("/?error=user_inactive")
     login_user(user)
+
     user.save()
     return redirect("/?auth=%s" % user.get_id())
 
@@ -579,6 +586,7 @@ def feishu_callback():
             # Try to log in
             user = users[0]
             login_user(user)
+
             return redirect("/?auth=%s" % user.get_id())
         except Exception as e:
             rollback_user_registration(user_id)
@@ -591,6 +599,7 @@ def feishu_callback():
         return redirect("/?error=user_inactive")
     user.access_token = get_uuid()
     login_user(user)
+
     user.save()
     return redirect("/?auth=%s" % user.get_id())
 
@@ -738,7 +747,50 @@ def user_profile():
               type: string
               description: User email.
     """
-    return get_json_result(data=current_user.to_dict())
+    info = current_user.to_dict()
+    info["is_admin"] = bool(is_first_user(current_user.id))
+    return get_json_result(data=info)
+
+
+@manager.route("/dashboard/stats", methods=["GET"])  # noqa: F821
+@login_required
+def dashboard_stats():
+    """Aggregate active-user and model-usage statistics for the system administrator.
+
+    Query params:
+        days (int, default 7, max 90): activity window for DAU and active users.
+        top  (int, default 10, max 50): number of top active users / top models to return.
+    """
+    if not is_first_user(current_user.id):
+        return get_data_error_result(
+            message="Only the system administrator can view dashboard statistics.",
+            code=settings.RetCode.FORBIDDEN,
+        )
+    try:
+        days = int(request.args.get("days", 7))
+    except (TypeError, ValueError):
+        days = 7
+    try:
+        top = int(request.args.get("top", 10))
+    except (TypeError, ValueError):
+        top = 10
+
+    daily = UserActivityLogService.daily_active(days)
+    top_users = UserActivityLogService.top_active_users(days, top)
+    unique_users = UserActivityLogService.total_unique_users(days)
+    total_users = UserService.model.select().count()
+    model_usage = model_usage_summary(top)
+
+    return get_json_result(
+        data={
+            "window_days": len(daily),
+            "total_users": int(total_users),
+            "active_users": int(unique_users),
+            "daily_active": daily,
+            "top_active_users": top_users,
+            "model_usage": model_usage,
+        }
+    )
 
 
 def rollback_user_registration(user_id):
@@ -935,6 +987,7 @@ def user_add():
             raise Exception(f"Same email: {email_address} exists!")
         user = users[0]
         login_user(user)
+
         return construct_response(
             data=user.to_json(),
             auth=user.get_id(),
@@ -1203,6 +1256,7 @@ def forget():
     # Auto login (reuse login flow)
     user.access_token = get_uuid()
     login_user(user)
+
     user.update_time = (current_timestamp(),)
     user.update_date = (datetime_format(datetime.now()),)
     user.save()
