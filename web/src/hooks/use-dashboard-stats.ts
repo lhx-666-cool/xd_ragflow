@@ -11,7 +11,13 @@ const EMPTY: IDashboardStats = {
   active_users: 0,
   daily_active: [],
   top_active_users: [],
-  model_usage: { by_model: [], by_factory: [], by_type: [], total_tokens: 0 },
+  model_usage: {
+    by_model: [],
+    by_factory: [],
+    by_model_name: [],
+    by_type: [],
+    total_tokens: 0,
+  },
 };
 
 export const useFetchDashboardStats = (days: number, top: number) => {
@@ -19,10 +25,10 @@ export const useFetchDashboardStats = (days: number, top: number) => {
   const { data: userInfo } = useFetchUserInfo();
   const enabled = !!userInfo?.is_admin;
 
-  const { data, isFetching, refetch } = useQuery<IDashboardStats>({
+  const { data = EMPTY, isFetching, refetch } = useQuery<IDashboardStats>({
     queryKey: ['dashboardStats', days, top],
     enabled,
-    initialData: EMPTY,
+    placeholderData: EMPTY,
     // Cheap to keep around: a single small JSON. Holding it for 30s avoids
     // re-fetching every time the admin tabs into Dashboard.
     gcTime: 30_000,

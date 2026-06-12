@@ -30,9 +30,15 @@ export interface IModelUsageByType {
   used_tokens: number;
 }
 
+export interface IModelUsageByModelName {
+  llm_name: string;
+  used_tokens: number;
+}
+
 export interface IModelUsage {
   by_model: IModelUsageByModel[];
   by_factory: IModelUsageByFactory[];
+  by_model_name: IModelUsageByModelName[];
   by_type: IModelUsageByType[];
   total_tokens: number;
 }

@@ -37,6 +37,20 @@ def is_first_user(user_id):
     return first_user is not None and first_user.id == user_id
 
 
+def _get_tenant_by_id(tenant_id):
+    return TenantService.model.get_or_none(TenantService.model.id == tenant_id)
+
+
+def _update_tenant_by_id(tenant_id, update_fields):
+    if not update_fields:
+        return 0
+
+    data = dict(update_fields)
+    data["update_time"] = current_timestamp()
+    data["update_date"] = datetime_format(datetime.now())
+    return TenantService.model.update(data).where(TenantService.model.id == tenant_id).execute()
+
+
 @DB.connection_context()
 def sync_llm_config_from_first_user(user_id):
     """Mirror the first registered user's model settings to ``user_id``'s tenant.
@@ -72,7 +86,7 @@ def sync_llm_config_from_first_user(user_id):
     now_date = datetime_format(datetime.now())
     with DB.atomic():
         if update_fields:
-            TenantService.update_by_id(user_id, update_fields)
+            _update_tenant_by_id(user_id, update_fields)
 
         for llm_factory, llm_name in existing_by_key:
             if (llm_factory, llm_name) not in source_by_key:
@@ -139,8 +153,8 @@ def _default_points_to_deleted_model(tenant_id, model_id, deleted_factory, delet
 
 
 def _clear_deleted_default_models(tenant_id, deleted_factory, deleted_llm_name=None):
-    found, tenant = TenantService.get_by_id(tenant_id)
-    if not found:
+    tenant = _get_tenant_by_id(tenant_id)
+    if not tenant:
         return []
 
     update_fields = {}
@@ -151,7 +165,7 @@ def _clear_deleted_default_models(tenant_id, deleted_factory, deleted_llm_name=N
 
     cleared_fields = list(update_fields.keys())
     if update_fields:
-        TenantService.update_by_id(tenant_id, update_fields)
+        _update_tenant_by_id(tenant_id, update_fields)
     return cleared_fields
 
 

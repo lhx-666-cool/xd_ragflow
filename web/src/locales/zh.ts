@@ -680,7 +680,7 @@ General：实体和关系提取提示来自 GitHub - microsoft/graphrag：基于
       dau: '日活',
       activeDays: '活跃天数',
       topActiveUsers: '活跃用户榜',
-      tokensByFactory: '各供应商 token 占比',
+      tokensByModel: '各模型 token 占比',
       topModels: '模型使用排行',
       user: '用户',
       email: '邮箱',

@@ -66,14 +66,12 @@ const SettingDashboard = () => {
   const top = 10;
   const { data, loading, refetch } = useFetchDashboardStats(days, top);
 
-  const factoryPie = useMemo(
-    () =>
-      (data.model_usage?.by_factory ?? []).map((it) => ({
-        name: it.factory || 'unknown',
-        value: it.used_tokens,
-      })),
-    [data],
-  );
+  const modelPie = useMemo(() => {
+    return (data.model_usage?.by_model_name ?? []).map((it) => ({
+      name: it.llm_name || 'unknown',
+      value: it.used_tokens,
+    }));
+  }, [data.model_usage?.by_model_name]);
 
   if (!userLoading && !userInfo?.is_admin) {
     return <Navigate to={Routes.UserSetting + Routes.Profile} replace />;
@@ -238,7 +236,7 @@ const SettingDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-1">
-              {t('dashboard.tokensByFactory')}
+              {t('dashboard.tokensByModel')}
               <LucideInfo
                 className="size-3.5 text-text-secondary"
                 aria-label={t('dashboard.allTimeTokensNote') as string}
@@ -246,7 +244,7 @@ const SettingDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="h-80">
-            {factoryPie.length === 0 ? (
+            {modelPie.length === 0 ? (
               <div className="flex items-center justify-center h-full text-text-secondary text-sm">
                 {t('dashboard.empty')}
               </div>
@@ -254,7 +252,7 @@ const SettingDashboard = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={factoryPie}
+                    data={modelPie}
                     dataKey="value"
                     nameKey="name"
                     outerRadius={100}
@@ -262,7 +260,7 @@ const SettingDashboard = () => {
                       `${e.name} ${((e.percent ?? 0) * 100).toFixed(1)}%`
                     }
                   >
-                    {factoryPie.map((_, i) => (
+                    {modelPie.map((_, i) => (
                       <Cell
                         key={i}
                         fill={PIE_COLORS[i % PIE_COLORS.length]}

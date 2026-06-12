@@ -689,7 +689,7 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       dau: 'DAU',
       activeDays: 'Active days',
       topActiveUsers: 'Top active users',
-      tokensByFactory: 'Token consumption by provider',
+      tokensByModel: 'Token consumption by model',
       topModels: 'Top models by usage',
       user: 'User',
       email: 'Email',

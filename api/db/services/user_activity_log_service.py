@@ -22,6 +22,21 @@ from api.db.services.common_service import CommonService
 from rag.utils.redis_conn import REDIS_CONN
 
 
+UTC8_OFFSET = timedelta(hours=8)
+
+
+def utc_now() -> datetime:
+    return datetime.utcnow()
+
+
+def utc8_date(dt: datetime | None = None):
+    return ((dt or utc_now()) + UTC8_OFFSET).date()
+
+
+def format_utc8(dt: datetime) -> str:
+    return (dt + UTC8_OFFSET).strftime("%Y-%m-%d %H:%M:%S")
+
+
 class UserActivityLogService(CommonService):
     model = UserActivityLog
 
@@ -44,8 +59,8 @@ class UserActivityLogService(CommonService):
         if not user_id:
             return
         try:
-            now = datetime.now()
-            today = now.strftime("%Y-%m-%d")
+            now = utc_now()
+            today = utc8_date(now).strftime("%Y-%m-%d")
             throttle_key = f"user_active:{user_id}:{today}"
 
             try:
@@ -77,7 +92,7 @@ class UserActivityLogService(CommonService):
     def daily_active(cls, days: int) -> list[dict]:
         """[{date, dau}] for the last ``days`` days, oldest first, gaps zero-filled."""
         days = max(1, min(int(days or 1), 90))
-        today = datetime.now().date()
+        today = utc8_date()
         start = today - timedelta(days=days - 1)
         start_str = start.strftime("%Y-%m-%d")
 
@@ -103,7 +118,7 @@ class UserActivityLogService(CommonService):
         """Top users by number of distinct active days, with nickname/email/last_seen."""
         days = max(1, min(int(days or 1), 90))
         limit = max(1, min(int(limit or 10), 50))
-        start_str = (datetime.now().date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+        start_str = (utc8_date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
 
         rows = (
             cls.model.select(
@@ -129,7 +144,7 @@ class UserActivityLogService(CommonService):
                     "nickname": r.get("nickname") or "",
                     "email": r.get("email") or "",
                     "active_days": int(r.get("active_days") or 0),
-                    "last_seen_at": last.strftime("%Y-%m-%d %H:%M:%S") if isinstance(last, datetime) else (str(last) if last else ""),
+                    "last_seen_at": format_utc8(last) if isinstance(last, datetime) else (str(last) if last else ""),
                 }
             )
         return out
@@ -138,7 +153,7 @@ class UserActivityLogService(CommonService):
     @DB.connection_context()
     def total_unique_users(cls, days: int) -> int:
         days = max(1, min(int(days or 1), 90))
-        start_str = (datetime.now().date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+        start_str = (utc8_date() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
         return int(cls.model.select(fn.COUNT(fn.DISTINCT(cls.model.user_id))).where(cls.model.activity_date >= start_str).scalar() or 0)
 
 
@@ -181,6 +196,17 @@ def model_usage_summary(top_n: int = 20) -> dict:
         .dicts()
     )
 
+    by_model_name_rows = (
+        TenantLLM.select(
+            TenantLLM.llm_name,
+            fn.SUM(TenantLLM.used_tokens).alias("used_tokens"),
+        )
+        .where(TenantLLM.used_tokens > 0)
+        .group_by(TenantLLM.llm_name)
+        .order_by(fn.SUM(TenantLLM.used_tokens).desc())
+        .dicts()
+    )
+
     by_type_rows = (
         TenantLLM.select(
             TenantLLM.model_type,
@@ -210,6 +236,13 @@ def model_usage_summary(top_n: int = 20) -> dict:
         }
         for r in by_factory_rows
     ]
+    by_model_name = [
+        {
+            "llm_name": r.get("llm_name") or "",
+            "used_tokens": int(r.get("used_tokens") or 0),
+        }
+        for r in by_model_name_rows
+    ]
     by_type = [
         {
             "model_type": r.get("model_type") or "",
@@ -222,6 +255,7 @@ def model_usage_summary(top_n: int = 20) -> dict:
     return {
         "by_model": by_model,
         "by_factory": by_factory,
+        "by_model_name": by_model_name,
         "by_type": by_type,
         "total_tokens": total_tokens,
     }
