@@ -66,6 +66,8 @@ export default {
       signUpTip: '已经有帐户？',
       nicknameLabel: '名称',
       nicknamePlaceholder: '请输入名称',
+      invitationCodeLabel: '邀请码',
+      invitationCodePlaceholder: '请输入邀请码（选填）',
       register: '创建账户',
       continue: '继续',
       title: 'A leading RAG engine for LLM context',
@@ -693,6 +695,13 @@ General：实体和关系提取提示来自 GitHub - microsoft/graphrag：基于
       usedTokens: '已用 token',
       refresh: '刷新',
       loadFailed: '加载活跃度数据失败',
+      invitationCode: '注册邀请码',
+      generateInvitationCode: '生成邀请码',
+      invitationCodeEmpty: '暂无邀请码',
+      copyInvitationCode: '复制邀请码',
+      invitationCodeCreated: '邀请码已生成',
+      invitationCodeCopied: '邀请码已复制',
+      copyFailed: '复制失败',
       allTimeTokensNote:
         'Token 数据是模型自启用以来的累计值：系统按 (租户, 模型) 维护计数器，并未记录每次调用，所以无法按上方时间范围切片。',
       range: {

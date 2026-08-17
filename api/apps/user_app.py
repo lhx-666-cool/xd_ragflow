@@ -36,6 +36,7 @@ from api.db.services.api_service import APITokenService
 from api.db.services.file_service import FileService
 from api.db.services.llm_config_service import fanout_llm_config_from_admin, is_first_user, sync_llm_config_from_first_user
 from api.db.services.user_activity_log_service import UserActivityLogService, model_usage_summary
+from api.db.services.invitation_code_service import InvitationCodeService
 from api.db.services.llm_service import get_init_tenant_llm
 from api.db.services.tenant_llm_service import TenantLLMService
 from api.db.services.user_service import TenantService, UserService, UserTenantService
@@ -65,6 +66,7 @@ from api.utils.web_utils import (
 )
 
 WEB_REGISTER_EMAIL_SUFFIX = "@xdechat.748091f7-5d4b-401e-8cc1-b7ca0f7b90b6.xidian.edu.cn"
+INVALID_INVITATION_CODE_MESSAGE = "Invalid invitation code!"
 
 
 def is_allowed_web_register_email(email: str) -> bool:
@@ -793,6 +795,29 @@ def dashboard_stats():
     )
 
 
+@manager.route("/invitation-code", methods=["POST"])  # noqa: F821
+@login_required
+def create_invitation_code():
+    if not is_first_user(current_user.id):
+        return get_data_error_result(
+            message="Only the system administrator can create invitation codes.",
+            code=settings.RetCode.FORBIDDEN,
+        )
+
+    tenant_info = TenantService.get_info_by(current_user.id)
+    tenant_id = tenant_info[0]["tenant_id"] if tenant_info else current_user.id
+    try:
+        code = InvitationCodeService.create_code(current_user.id, tenant_id)
+        return get_json_result(data={"code": code})
+    except Exception as e:
+        logging.exception(e)
+        return get_json_result(
+            data=False,
+            message="Failed to create invitation code.",
+            code=settings.RetCode.EXCEPTION_ERROR,
+        )
+
+
 def rollback_user_registration(user_id):
     try:
         UserService.delete_by_id(user_id)
@@ -942,6 +967,8 @@ def user_add():
 
     req = request.json
     email_address = str(req["email"]).strip()
+    invitation_code = str(req.get("invitation_code") or "").strip()
+    has_invitation_code = bool(invitation_code)
 
     # Validate the email address
     if not re.match(r"^[\w\._-]+@([\w_-]+\.)+[\w-]{2,}$", email_address):
@@ -951,7 +978,14 @@ def user_add():
             code=settings.RetCode.OPERATING_ERROR,
         )
 
-    if not is_allowed_web_register_email(email_address):
+    if has_invitation_code:
+        if not InvitationCodeService.is_valid_code(invitation_code):
+            return get_json_result(
+                data=False,
+                message=INVALID_INVITATION_CODE_MESSAGE,
+                code=settings.RetCode.OPERATING_ERROR,
+            )
+    elif not is_allowed_web_register_email(email_address):
         return get_json_result(
             data=False,
             message="User registration is disabled!",
@@ -986,6 +1020,8 @@ def user_add():
         if len(users) > 1:
             raise Exception(f"Same email: {email_address} exists!")
         user = users[0]
+        if has_invitation_code and not InvitationCodeService.consume_code(invitation_code):
+            raise Exception(INVALID_INVITATION_CODE_MESSAGE)
         login_user(user)
 
         return construct_response(

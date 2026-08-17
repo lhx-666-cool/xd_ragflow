@@ -73,6 +73,8 @@ export default {
       signUpTip: 'Already have an account?',
       nicknameLabel: 'Nickname',
       nicknamePlaceholder: 'Please input nickname',
+      invitationCodeLabel: 'Invitation code',
+      invitationCodePlaceholder: 'Invitation code (optional)',
       register: 'Create an account',
       continue: 'Continue',
       title: 'A leading RAG engine for LLM context',
@@ -702,6 +704,13 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       usedTokens: 'Used tokens',
       refresh: 'Refresh',
       loadFailed: 'Failed to load activity statistics',
+      invitationCode: 'Registration invitation code',
+      generateInvitationCode: 'Generate code',
+      invitationCodeEmpty: 'No code generated',
+      copyInvitationCode: 'Copy invitation code',
+      invitationCodeCreated: 'Invitation code generated',
+      invitationCodeCopied: 'Invitation code copied',
+      copyFailed: 'Copy failed',
       allTimeTokensNote:
         'Token totals are cumulative since the model was first used: the system tracks running counters per tenant + model, not per request, so they cannot be sliced by the time window above.',
       range: {

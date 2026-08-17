@@ -1,10 +1,12 @@
-import { Button } from '@/components/ui/button';
+import { Button, ButtonLoading } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import message from '@/components/ui/message';
 import {
   Select,
   SelectContent,
@@ -23,7 +25,15 @@ import {
 import { useFetchDashboardStats } from '@/hooks/use-dashboard-stats';
 import { useFetchUserInfo } from '@/hooks/user-setting-hooks';
 import { Routes } from '@/routes';
-import { LucideInfo, LucideRefreshCw } from 'lucide-react';
+import userService from '@/services/user-service';
+import { useMutation } from '@tanstack/react-query';
+import {
+  Copy,
+  KeyRound,
+  LucideInfo,
+  LucideRefreshCw,
+  Plus,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'umi';
@@ -63,8 +73,25 @@ const SettingDashboard = () => {
   const { t } = useTranslation();
   const { data: userInfo, loading: userLoading } = useFetchUserInfo();
   const [days, setDays] = useState<number>(7);
+  const [invitationCode, setInvitationCode] = useState('');
   const top = 10;
   const { data, loading, refetch } = useFetchDashboardStats(days, top);
+  const {
+    isPending: creatingInvitationCode,
+    mutateAsync: createInvitationCode,
+  } = useMutation({
+    mutationKey: ['createInvitationCode'],
+    mutationFn: async () => {
+      const { data: res } = await userService.invitationCode();
+      if (res?.code === 0) {
+        const code = res.data?.code || '';
+        setInvitationCode(code);
+        message.success(t('dashboard.invitationCodeCreated'));
+        return code;
+      }
+      return '';
+    },
+  });
 
   const modelPie = useMemo(() => {
     return (data.model_usage?.by_model_name ?? []).map((it) => ({
@@ -76,6 +103,19 @@ const SettingDashboard = () => {
   if (!userLoading && !userInfo?.is_admin) {
     return <Navigate to={Routes.UserSetting + Routes.Profile} replace />;
   }
+
+  const handleCopyInvitationCode = async () => {
+    if (!invitationCode) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(invitationCode);
+      message.success(t('dashboard.invitationCodeCopied'));
+    } catch (error) {
+      console.error(error);
+      message.error(t('dashboard.copyFailed'));
+    }
+  };
 
   return (
     <section className="flex flex-col h-full w-full p-6 overflow-auto gap-6">
@@ -115,6 +155,43 @@ const SettingDashboard = () => {
           </Button>
         </div>
       </header>
+
+      <Card>
+        <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm text-text-secondary flex items-center gap-2">
+            <KeyRound className="size-4" />
+            {t('dashboard.invitationCode')}
+          </CardTitle>
+          <ButtonLoading
+            variant="outline"
+            className="border-accent-primary/60 bg-accent-primary/15 text-text-primary shadow-sm hover:border-accent-primary hover:bg-accent-primary/25 hover:text-text-primary focus-visible:border-accent-primary focus-visible:ring-accent-primary/30 dark:border-accent-primary/70 dark:bg-accent-primary/20 dark:hover:bg-accent-primary/30"
+            onClick={() => createInvitationCode()}
+            loading={creatingInvitationCode}
+          >
+            <Plus className="size-4" />
+            {t('dashboard.generateInvitationCode')}
+          </ButtonLoading>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2 max-w-xl">
+            <Input
+              readOnly
+              value={invitationCode}
+              placeholder={t('dashboard.invitationCodeEmpty')}
+              className="font-mono tracking-wider"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCopyInvitationCode}
+              disabled={!invitationCode}
+              title={t('dashboard.copyInvitationCode')}
+            >
+              <Copy className="size-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <section className="grid grid-cols-3 gap-4">
         <Card>

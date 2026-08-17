@@ -29,6 +29,7 @@ class LLMService(CommonService):
 
 def get_init_tenant_llm(user_id):
     from api import settings
+
     tenant_llm = []
 
     seen = set()
@@ -207,6 +208,7 @@ class LLMBundle(LLM4Tenant):
             return kwargs
         else:
             return {k: v for k, v in kwargs.items() if k in allowed_params}
+
     def chat(self, system: str, history: list, gen_conf: dict = {}, **kwargs) -> str:
         if self.langfuse:
             generation = self.langfuse.start_generation(trace_context=self.trace_context, name="chat", model=self.llm_name, input={"system": system, "history": history})
@@ -249,7 +251,7 @@ class LLMBundle(LLM4Tenant):
                     generation.end()
                 break
 
-            if txt.endswith("</think>"):
+            if txt.endswith("</think>") and ans.endswith("</think>"):
                 ans = ans[: -len("</think>")]
 
             if not self.verbose_tool_use:

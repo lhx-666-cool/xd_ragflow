@@ -18,6 +18,7 @@ export interface ILoginRequestBody {
 
 export interface IRegisterRequestBody extends ILoginRequestBody {
   nickname: string;
+  invitationCode?: string;
 }
 
 export interface ILoginChannel {
@@ -94,6 +95,7 @@ export const useRegister = () => {
       email: string;
       password: string;
       nickname: string;
+      invitationCode?: string;
     }) => {
       const { data = {} } = await userService.register(params);
       if (data.code === 0) {

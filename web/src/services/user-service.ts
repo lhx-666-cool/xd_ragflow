@@ -10,6 +10,7 @@ const {
   user_info,
   tenant_info,
   dashboardStats,
+  invitationCode,
   factories_list,
   llm_list,
   my_llm,
@@ -51,6 +52,10 @@ const methods = {
   dashboardStats: {
     url: dashboardStats,
     method: 'get',
+  },
+  invitationCode: {
+    url: invitationCode,
+    method: 'post',
   },
   get_tenant_info: {
     url: tenant_info,

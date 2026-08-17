@@ -75,6 +75,7 @@ const Login = () => {
           nickname: params.nickname,
           email: `${params.email}`.trim(),
           password: rsaPassWord,
+          invitationCode: `${params.invitationCode || ''}`.trim(),
         });
         if (code === 0) {
           setTitle('login');
@@ -124,6 +125,18 @@ const Login = () => {
                 rules={[{ required: true, message: t('nicknamePlaceholder') }]}
               >
                 <Input size="large" placeholder={t('nicknamePlaceholder')} />
+              </Form.Item>
+            )}
+            {title === 'register' && (
+              <Form.Item
+                {...formItemLayout}
+                name="invitationCode"
+                label={t('invitationCodeLabel')}
+              >
+                <Input
+                  size="large"
+                  placeholder={t('invitationCodePlaceholder')}
+                />
               </Form.Item>
             )}
             <Form.Item

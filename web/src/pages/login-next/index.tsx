@@ -182,6 +182,7 @@ const Login = () => {
         .email()
         .min(1, { message: t('emailPlaceholder') }),
       password: z.string().min(1, { message: t('passwordPlaceholder') }),
+      invitationCode: z.string().optional(),
       remember: z.boolean().optional(),
     })
     .superRefine((data, ctx) => {
@@ -199,6 +200,7 @@ const Login = () => {
       email: '',
       password: '',
       confirmPassword: '',
+      invitationCode: '',
       remember: false,
     },
     resolver: zodResolver(FormSchema),
@@ -224,6 +226,7 @@ const Login = () => {
           nickname: params.nickname,
           email: `${params.email}`.trim(),
           password: rsaPassWord,
+          invitationCode: `${params.invitationCode || ''}`.trim(),
         });
         if (code === 0) {
           setTitle('login');
@@ -319,6 +322,26 @@ const Login = () => {
                               <Input
                                 placeholder={t('nicknamePlaceholder')}
                                 autoComplete="username"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {title === 'register' && (
+                      <FormField
+                        control={form.control}
+                        name="invitationCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('invitationCodeLabel')}</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder={t('invitationCodePlaceholder')}
+                                autoComplete="off"
                                 {...field}
                               />
                             </FormControl>
