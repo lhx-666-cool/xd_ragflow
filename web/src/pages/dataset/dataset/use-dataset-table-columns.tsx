@@ -17,6 +17,7 @@ import { ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DatasetActionCell } from './dataset-action-cell';
 import { ParsingStatusCell } from './parsing-status-cell';
+import { TextbookKgStatusCell } from './textbook-kg-status-cell';
 import { UseChangeDocumentParserShowType } from './use-change-document-parser';
 import { UseRenameDocumentShowType } from './use-rename-document';
 import { UseSaveMetaShowType } from './use-save-meta';
@@ -38,6 +39,7 @@ export function useDatasetTableColumns({
   const { t } = useTranslation('translation', {
     keyPrefix: 'knowledgeDetails',
   });
+  const { t: globalT } = useTranslation();
 
   const { navigateToChunkParsedResult } = useNavigatePage();
   const { setDocumentStatus } = useSetDocumentStatus();
@@ -171,6 +173,13 @@ export function useDatasetTableColumns({
           ></ParsingStatusCell>
         );
       },
+    },
+    {
+      id: 'textbook_kg',
+      header: globalT('fileManager.textbookKg'),
+      cell: ({ row }) => (
+        <TextbookKgStatusCell record={row.original}></TextbookKgStatusCell>
+      ),
     },
     {
       id: 'actions',

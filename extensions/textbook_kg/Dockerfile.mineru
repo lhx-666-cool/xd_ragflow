@@ -1,0 +1,33 @@
+FROM python:3.11-slim
+
+ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+ARG MINERU_VERSION=3.4.4
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_INDEX_URL=${PIP_INDEX_URL} \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      curl \
+      libgl1 \
+      libglib2.0-0 \
+      libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir \
+      "torch==2.8.0" \
+      "torchvision==0.23.0" \
+      "mineru[pipeline]==${MINERU_VERSION}"
+
+RUN python -m pip install --no-cache-dir "six>=1.17,<2"
+
+ENV MINERU_MODEL_SOURCE=modelscope
+
+EXPOSE 8886
+
+HEALTHCHECK --interval=20s --timeout=5s --start-period=30s --retries=5 \
+  CMD curl -fsS http://127.0.0.1:8886/health || exit 1
+
+ENTRYPOINT ["mineru-api"]
+CMD ["--host", "127.0.0.1", "--port", "8886"]

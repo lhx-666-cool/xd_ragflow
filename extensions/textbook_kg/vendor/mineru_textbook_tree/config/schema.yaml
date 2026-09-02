@@ -1,0 +1,25 @@
+entity_types:
+  Concept: General domain concept, term, or theoretical notion.
+  Method: A named method or problem-solving approach.
+  Principle: A principle, rule, law, or guiding statement.
+  Formula: A mathematical formula, equation, or expression.
+  Algorithm: A named algorithm or stepwise computational procedure.
+  Structure: A data structure, model structure, or organized composition.
+  Process: A process, workflow, or sequence of operations.
+  Metric: A measurement index, indicator, or evaluation criterion.
+  Tool: A software tool, instrument, or practical artifact.
+  Phenomenon: An observed effect, pattern, or phenomenon.
+
+relation_types:
+  is_a: Head is a type, subtype, or specialization of tail.
+  part_of: Head is a component or part of tail.
+  prerequisite_of: Head should be understood before tail.
+  causes: Head leads to or causes tail.
+  affects: Head influences tail.
+  used_for: Head is used for tail.
+  consists_of: Head consists of tail.
+  compared_with: Head is compared with tail.
+  instance_of: Head is an example or instance of tail.
+  evaluated_by: Head is evaluated or measured by tail.
+  implemented_by: Head is implemented by tail.
+  derived_from: Head is derived from tail.

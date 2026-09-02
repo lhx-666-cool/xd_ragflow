@@ -10,7 +10,10 @@ import {
   IDocumentMetaRequestBody,
 } from '@/interfaces/request/document';
 import i18n from '@/locales/config';
-import kbService, { listDocument } from '@/services/knowledge-service';
+import kbService, {
+  listDocument,
+  submitTextbookKg,
+} from '@/services/knowledge-service';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from 'ahooks';
 import { get } from 'lodash';
@@ -36,6 +39,7 @@ export const enum DocumentApiAction {
   SetDocumentMeta = 'setDocumentMeta',
   FetchDocumentFilter = 'fetchDocumentFilter',
   CreateDocument = 'createDocument',
+  SubmitTextbookKg = 'submitTextbookKg',
 }
 
 export const useUploadNextDocument = () => {
@@ -76,6 +80,28 @@ export const useUploadNextDocument = () => {
   });
 
   return { uploadDocument: mutateAsync, loading, data };
+};
+
+export const useSubmitTextbookKg = () => {
+  const queryClient = useQueryClient();
+  const {
+    data,
+    isPending: loading,
+    mutateAsync,
+  } = useMutation({
+    mutationKey: [DocumentApiAction.SubmitTextbookKg],
+    mutationFn: async (documentIds: string[]) => {
+      const response = await submitTextbookKg(documentIds);
+      return response?.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [DocumentApiAction.FetchDocumentList],
+      });
+    },
+  });
+
+  return { submitTextbookKg: mutateAsync, loading, data };
 };
 
 export const useFetchDocumentList = () => {
