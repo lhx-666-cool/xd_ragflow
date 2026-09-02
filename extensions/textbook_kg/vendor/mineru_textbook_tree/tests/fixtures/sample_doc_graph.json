@@ -1,0 +1,32 @@
+{
+  "book_title": "Sample Data Structures",
+  "toc_pages_pdf": [1, 2],
+  "toc_to_pdf_offset": 0,
+  "chapters": [
+    {
+      "marker": "Chapter 1",
+      "title": "Queue Basics",
+      "label": "Chapter 1 Queue Basics",
+      "level": 1,
+      "toc_page_start": 1,
+      "toc_page_end": 4,
+      "pdf_page_start": 1,
+      "pdf_page_end": 4,
+      "content": "Queue is a Structure. Queue is used for Scheduling. Queue consists of Front Pointer. Circular Queue is a Queue.",
+      "children": [
+        {
+          "marker": "1.1",
+          "title": "Queue Operations",
+          "label": "1.1 Queue Operations",
+          "level": 2,
+          "toc_page_start": 2,
+          "toc_page_end": 3,
+          "pdf_page_start": 2,
+          "pdf_page_end": 3,
+          "content": "Enqueue is a Algorithm. Enqueue is used for Queue. Queue is implemented by Array.",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

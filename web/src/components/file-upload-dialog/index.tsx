@@ -21,6 +21,7 @@ import { Switch } from '../ui/switch';
 function buildUploadFormSchema(t: TFunction) {
   const FormSchema = z.object({
     parseOnCreation: z.boolean().optional(),
+    buildTextbookKg: z.boolean().optional(),
     fileList: z
       .array(z.instanceof(File))
       .min(1, { message: t('fileManager.pleaseUploadAtLeastOneFile') }),
@@ -38,8 +39,13 @@ const UploadFormId = 'UploadFormId';
 type UploadFormProps = {
   submit: (values?: UploadFormSchemaType) => void;
   showParseOnCreation?: boolean;
+  showTextbookKgOption?: boolean;
 };
-function UploadForm({ submit, showParseOnCreation }: UploadFormProps) {
+function UploadForm({
+  submit,
+  showParseOnCreation,
+  showTextbookKgOption,
+}: UploadFormProps) {
   const { t } = useTranslation();
   const FormSchema = buildUploadFormSchema(t);
 
@@ -48,6 +54,7 @@ function UploadForm({ submit, showParseOnCreation }: UploadFormProps) {
     resolver: zodResolver(FormSchema),
     defaultValues: {
       parseOnCreation: false,
+      buildTextbookKg: false,
       fileList: [],
     },
   });
@@ -72,6 +79,20 @@ function UploadForm({ submit, showParseOnCreation }: UploadFormProps) {
             )}
           </RAGFlowFormItem>
         )}
+        {showTextbookKgOption && (
+          <RAGFlowFormItem
+            name="buildTextbookKg"
+            label={t('fileManager.buildTextbookKg')}
+            tooltip={t('fileManager.buildTextbookKgDescription')}
+          >
+            {(field) => (
+              <Switch
+                onCheckedChange={field.onChange}
+                checked={field.value}
+              ></Switch>
+            )}
+          </RAGFlowFormItem>
+        )}
         <RAGFlowFormItem name="fileList" label={t('fileManager.file')}>
           {(field) => (
             <FileUploader
@@ -80,11 +101,14 @@ function UploadForm({ submit, showParseOnCreation }: UploadFormProps) {
               accept={{
                 'application/pdf': ['.pdf'],
                 'application/msword': ['.doc'],
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+                  ['.docx'],
                 'application/vnd.ms-powerpoint': ['.ppt'],
-                'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+                'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+                  ['.pptx'],
                 'application/vnd.ms-excel': ['.xls'],
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                  ['.xlsx'],
                 'text/plain': ['.txt', '.csv', '.md'],
                 'image/*': ['.jpg', '.jpeg', '.png'],
               }}
@@ -97,12 +121,13 @@ function UploadForm({ submit, showParseOnCreation }: UploadFormProps) {
 }
 
 type FileUploadDialogProps = IModalProps<UploadFormSchemaType> &
-  Pick<UploadFormProps, 'showParseOnCreation'>;
+  Pick<UploadFormProps, 'showParseOnCreation' | 'showTextbookKgOption'>;
 export function FileUploadDialog({
   hideModal,
   onOk,
   loading,
   showParseOnCreation = false,
+  showTextbookKgOption = false,
 }: FileUploadDialogProps) {
   const { t } = useTranslation();
 
@@ -121,6 +146,7 @@ export function FileUploadDialog({
             <UploadForm
               submit={onOk!}
               showParseOnCreation={showParseOnCreation}
+              showTextbookKgOption={showTextbookKgOption}
             ></UploadForm>
           </TabsContent>
           <TabsContent value="password">{t('common.comingSoon')}</TabsContent>

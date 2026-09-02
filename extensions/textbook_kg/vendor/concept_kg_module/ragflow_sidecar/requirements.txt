@@ -1,0 +1,4 @@
+fastapi>=0.115,<1
+python-multipart>=0.0.9,<1
+requests>=2.31,<3
+uvicorn>=0.30,<1

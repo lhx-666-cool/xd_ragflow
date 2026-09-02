@@ -250,6 +250,27 @@ export const listDocument = (
 export const documentFilter = (kb_id: string) =>
   request.post(api.get_dataset_filter, { kb_id });
 
+export const submitTextbookKg = (docIds: string[]) =>
+  post(api.textbook_kg_submit, { doc_ids: docIds });
+
+export const fetchTextbookKgJob = (documentId: string) =>
+  request.get(api.textbook_kg_job(documentId));
+
+export const retryTextbookKgJob = (documentId: string) =>
+  post(api.textbook_kg_retry(documentId), {});
+
+export const cancelTextbookKgJob = (documentId: string) =>
+  post(api.textbook_kg_cancel(documentId), {});
+
+export const importTextbookKgToGraphRag = (documentId: string) =>
+  post(api.textbook_kg_import(documentId), {});
+
+export const downloadTextbookKgBundle = (documentId: string) =>
+  request.get(api.textbook_kg_bundle(documentId), { responseType: 'blob' });
+
+export const fetchTextbookChapterTree = (documentId: string) =>
+  request.get(api.textbook_kg_tree(documentId));
+
 export const listDataPipelineLogDocument = (
   params?: IFetchKnowledgeListRequestParams,
   body?: IFetchDocumentListRequestBody,
@@ -269,7 +290,7 @@ export function deletePipelineTask({
   return request.delete(api.unbindPipelineTask({ kb_id, type }));
 }
 
-type ResponseData<D = {}> = {
+type ResponseData<D = Record<string, never>> = {
   code: number;
   message: string;
   data: D;

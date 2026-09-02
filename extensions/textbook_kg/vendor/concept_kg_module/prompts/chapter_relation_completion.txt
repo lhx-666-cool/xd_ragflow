@@ -1,0 +1,44 @@
+You are completing chapter-level cross-section relations for a textbook concept knowledge graph.
+
+Task:
+1. Read the chapter metadata, section-level KG context, and candidate concept pairs.
+2. Return only cross-section relations that are strongly supported by the section-level context.
+3. Do not create new concepts. Use only names from candidate_pairs.
+4. Output JSON only.
+
+Chapter:
+- chapter_node_id: ${CHAPTER_NODE_ID}
+- chapter_label: ${CHAPTER_LABEL}
+
+Allowed relation types:
+${RELATION_TYPES}
+
+Rules:
+- Only return relations whose two concepts appear together in one candidate pair.
+- The candidate pair may be used in either direction, but head and tail must be exactly one of the two candidate names.
+- Do not output a relation if the relation type or direction is uncertain.
+- Do not infer from outside knowledge.
+- Prefer structural textbook relations such as is_a, part_of, consists_of, prerequisite_of, compared_with, implemented_by, evaluated_by, derived_from, causes, affects, and used_for only when the context supports that meaning.
+- Return at most ${MAX_RELATIONS} relations.
+
+Section-level KG context:
+${SECTION_CONTEXT}
+
+Candidate pairs:
+${CANDIDATE_PAIRS}
+
+Return JSON with this exact shape:
+{
+  "relations": [
+    {
+      "candidate_id": "",
+      "head": "",
+      "relation": "",
+      "tail": "",
+      "evidence": ""
+    }
+  ]
+}
+
+If no relation is sufficiently supported, return:
+{"relations": []}

@@ -1,0 +1,57 @@
+﻿llm:
+  backend: openai_compatible
+  base_url: https://api.siliconflow.cn/v1
+  api_key_env: OPENAI_API_KEY
+  model: Pro/zai-org/GLM-4.7
+  temperature: 0
+  max_tokens: 2000
+  timeout_seconds: 90
+  retries: 2
+  max_content_chars: 2600
+  retry_content_chars:
+    - 2000
+    - 1500
+    - 1000
+  max_entities_per_node: 12
+  max_relations_per_node: 12
+  response_format_json: true
+
+extraction:
+  include_structural_nodes: true
+  include_paragraph_nodes: true
+  paragraph_min_chars: 80
+  max_nodes: 0
+
+cleaning:
+  drop_invalid_types: true
+  drop_empty_definitions: false
+
+merging:
+  embedding_backend: openai_compatible
+  similarity_threshold: 0.84
+  lexical_similarity_threshold: 0.55
+  exact_name_merge: true
+  merge_same_type_only: false
+
+embedding:
+  base_url: https://api.siliconflow.cn/v1
+  api_key_env: OPENAI_API_KEY
+  model: BAAI/bge-large-zh-v1.5
+  encoding_format: base64
+  timeout_seconds: 120
+  retries: 5
+  batch_size: 4
+  cache_dir: .runtime_cache/embedding_vectors
+
+visualization:
+  max_nodes: 30
+
+neo4j:
+  enabled: false
+  uri_env: NEO4J_URI
+  user_env: NEO4J_USERNAME
+  password_env: NEO4J_PASSWORD
+  database: neo4j
+  create_constraints: true
+  batch_size: 200
+  export_payload: true
