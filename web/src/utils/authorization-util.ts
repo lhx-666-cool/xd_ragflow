@@ -13,7 +13,7 @@ const storage = {
     return localStorage.getItem(UserInfo);
   },
   getUserInfoObject: () => {
-    return JSON.parse(localStorage.getItem('userInfo') || '');
+    return JSON.parse(localStorage.getItem(UserInfo) || '{}');
   },
   setAuthorization: (value: string) => {
     localStorage.setItem(Authorization, value);

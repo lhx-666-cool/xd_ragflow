@@ -68,6 +68,7 @@ export const useLogin = () => {
           avatar: data.avatar,
           name: data.nickname,
           email: data.email,
+          login_channel: 'password',
         };
         authorizationUtil.setItems({
           Authorization: authorization,
@@ -131,11 +132,17 @@ export const useLogout = () => {
   } = useMutation({
     mutationKey: ['logout'],
     mutationFn: async () => {
+      const isPasswordLogin =
+        authorizationUtil.getUserInfoObject().login_channel === 'password';
       const { data = {} } = await userService.logout();
       if (data.code === 0) {
         message.success(t('message.logout'));
         authorizationUtil.removeAll();
-        window.location.href = idsLogoutUrl;
+        if (isPasswordLogin) {
+          redirectToLogin();
+        } else {
+          window.location.href = idsLogoutUrl;
+        }
       }
       return data.code;
     },
