@@ -980,6 +980,52 @@ This auto-tagging feature enhances retrieval by adding another layer of domain-s
       file: 'File',
       uploadFile: 'Upload File',
       parseOnCreation: 'Parse on creation',
+      buildTextbookKg: 'Build textbook knowledge graph',
+      buildTextbookKgDescription:
+        'After upload, send PDF textbooks to the isolated MinerU and textbook KG service.',
+      textbookKgOnlyPdf: 'Textbook KG currently supports PDF files only.',
+      textbookKgSubmitFailed:
+        'The files were uploaded, but the textbook KG task could not be submitted.',
+      textbookKgPartialFailure:
+        'Some files were uploaded but could not start a textbook KG task.',
+      textbookKgSubmitted: 'Textbook KG task submitted.',
+      textbookKg: 'Textbook KG',
+      textbookKgDownload: 'Download KG bundle',
+      textbookKgRetry: 'Retry',
+      textbookKgCancel: 'Cancel',
+      textbookKgCounts: 'Entities / relations / chunks',
+      textbookKgDownloadFailed: 'Failed to download the textbook KG bundle.',
+      textbookKgViewGraph: 'View knowledge graph in RAGFlow',
+      textbookChapterTree: 'View textbook chapter tree',
+      textbookChapterTreeLoading: 'Loading the chapter tree…',
+      textbookChapterTreeLoadFailed:
+        'Failed to load the chapter tree. Please try again.',
+      textbookChapterTreeSummary: '{{nodes}} nodes · {{depth}} levels',
+      textbookChapterTreeExpandAll: 'Expand all chapters',
+      textbookChapterTreeCollapseAll: 'Collapse all chapters',
+      textbookChapterTreeLevel: 'Level {{level}}',
+      textbookChapterTreePdfPages: 'PDF pages',
+      textbookChapterTreeTocPages: 'Printed pages',
+      textbookChapterTreeChildren: 'Child nodes',
+      textbookChapterTreeContentPreview: 'Chapter content preview',
+      textbookChapterTreeNoContent:
+        'This node only organizes the chapter hierarchy and has no separate body text.',
+      textbookChapterTreeEmpty:
+        'This textbook has no chapter nodes to display.',
+      textbookKgImportRetry: 'Retry GraphRAG import',
+      textbookKgGraphRagStatus: {
+        pending: 'Waiting for GraphRAG import',
+        importing: 'Importing into GraphRAG',
+        imported: 'Available in GraphRAG',
+        failed: 'GraphRAG import failed',
+      },
+      textbookKgStatus: {
+        queued: 'Queued',
+        running: 'Running',
+        succeeded: 'Completed',
+        failed: 'Failed',
+        canceled: 'Canceled',
+      },
       directory: 'Directory',
       uploadTitle: 'Drag and drop your file here to upload',
       uploadDescription:

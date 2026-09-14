@@ -11,6 +11,17 @@ const TooltipColorMap = {
   edge: 'blue',
 };
 
+const escapeHtml = (value: unknown) =>
+  String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+const displayList = (value: unknown) =>
+  Array.isArray(value) ? value.map(escapeHtml).join(', ') : escapeHtml(value);
+
 interface IProps {
   data: any;
   show: boolean;
@@ -49,26 +60,35 @@ const ForceGraph = ({ data, show }: IProps) => {
           type: 'tooltip',
           enterable: true,
           getContent: (e: IElementEvent, items: ElementDatum) => {
-            if (Array.isArray(items)) {
-              if (items.some((x) => x?.isCombo)) {
-                return `<p style="font-weight:600;color:red">${items?.[0]?.data?.label}</p>`;
-              }
-              let result = ``;
-              items.forEach((item) => {
-                result += `<section style="color:${TooltipColorMap[e['targetType'] as keyof typeof TooltipColorMap]};"><h3>${item?.id}</h3>`;
-                if (item?.entity_type) {
-                  result += `<div style="padding-bottom: 6px;"><b>Entity type: </b>${item?.entity_type}</div>`;
-                }
-                if (item?.weight) {
-                  result += `<div><b>Weight: </b>${item?.weight}</div>`;
-                }
-                if (item?.description) {
-                  result += `<p>${item?.description}</p>`;
-                }
-              });
-              return result + '</section>';
+            if (!Array.isArray(items)) return undefined;
+            if (items.some((item) => item?.isCombo)) {
+              return `<p style="font-weight:600;color:red">${escapeHtml(items?.[0]?.data?.label)}</p>`;
             }
-            return undefined;
+            let result = '';
+            items.forEach((item) => {
+              const color =
+                TooltipColorMap[
+                  e['targetType'] as keyof typeof TooltipColorMap
+                ] || 'black';
+              result += `<section style="color:${color};max-width:420px;white-space:normal"><h3>${escapeHtml(item?.id)}</h3>`;
+              if (item?.entity_type) {
+                result += `<div style="padding-bottom:6px"><b>Entity type: </b>${escapeHtml(item.entity_type)}</div>`;
+              }
+              if (item?.relation_types) {
+                result += `<div style="padding-bottom:6px"><b>Relations: </b>${displayList(item.relation_types)}</div>`;
+              }
+              if (item?.weight) {
+                result += `<div><b>Weight: </b>${escapeHtml(item.weight)}</div>`;
+              }
+              if (item?.description) {
+                result += `<p>${escapeHtml(item.description)}</p>`;
+              }
+              if (item?.textbook_source_ids) {
+                result += `<div><b>Textbook source: </b>${displayList(item.textbook_source_ids)}</div>`;
+              }
+              result += '</section>';
+            });
+            return result;
           },
         },
       ],

@@ -1,0 +1,70 @@
+You are extracting a textbook concept knowledge graph from one document node.
+
+Task:
+1. Read the provided document node text.
+2. Extract concept entities and semantic relations that are explicitly supported by the text.
+3. Return only valid JSON matching the required schema.
+
+Document node metadata:
+- source_node_id: ${SOURCE_NODE_ID}
+- node_label: ${NODE_LABEL}
+
+Allowed entity types:
+${ENTITY_TYPES}
+
+Allowed relation types:
+${RELATION_TYPES}
+
+Anti-hallucination rules:
+- Only extract information explicitly stated or directly definable from the provided text.
+- Do not invent entities, definitions, aliases, or relations.
+- If the text does not clearly support an entity or relation, omit it.
+- Do not use outside knowledge.
+- Do not infer hidden prerequisites, causes, or comparisons unless the text clearly states them.
+- Keep evidence as a short verbatim span from the text.
+
+Entity output rules:
+- name must be the canonical mention from the text.
+- alias must contain only aliases explicitly mentioned in the text.
+- type must be chosen from the allowed entity types.
+- definition must be grounded in the text and concise.
+- source_node_id must equal the provided source_node_id.
+
+Relation output rules:
+- head and tail must refer to extracted entity names from the same node whenever possible.
+- relation must be chosen from the allowed relation types.
+- evidence must be a short supporting quote from the text.
+- source_node_id must equal the provided source_node_id.
+
+Output budget:
+${OUTPUT_BUDGET}
+- Prefer the most central concepts and the most explicit relations when the node is dense.
+- Do not exceed the budget.
+
+Return JSON with exactly this shape:
+{
+  "entities": [
+    {
+      "name": "",
+      "alias": [],
+      "type": "",
+      "definition": "",
+      "source_node_id": "${SOURCE_NODE_ID}"
+    }
+  ],
+  "relations": [
+    {
+      "head": "",
+      "relation": "",
+      "tail": "",
+      "source_node_id": "${SOURCE_NODE_ID}",
+      "evidence": ""
+    }
+  ]
+}
+
+If nothing can be extracted, return:
+{"entities": [], "relations": []}
+
+Document text:
+${CONTENT}

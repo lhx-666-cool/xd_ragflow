@@ -1,0 +1,55 @@
+services:
+  mineru-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.mineru
+    image: ragflow/mineru-api:3.4.4-pipeline
+    container_name: mineru-api
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      CUDA_VISIBLE_DEVICES: "0"
+      MINERU_MODEL_SOURCE: modelscope
+    volumes:
+      - ./runtime/mineru-cache:/root/.cache
+    shm_size: 8gb
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]
+              capabilities: [gpu]
+
+  textbook-kg-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ragflow/textbook-kg-api:local
+    container_name: textbook-kg-api
+    restart: unless-stopped
+    user: "${TEXTBOOK_KG_UID:-1000}:${TEXTBOOK_KG_GID:-1000}"
+    network_mode: host
+    env_file:
+      - .env.sidecar
+    environment:
+      TEXTBOOK_KG_HOST: 127.0.0.1
+      TEXTBOOK_KG_PORT: "8890"
+      TEXTBOOK_KG_JOB_ROOT: /var/lib/textbook-kg
+      TEXTBOOK_KG_CONCEPT_ROOT: /opt/textbook-kg/vendor/concept_kg_module
+      TEXTBOOK_KG_MINERU_ROOT: /opt/textbook-kg/vendor/mineru_textbook_tree
+      TEXTBOOK_KG_WORKER_CONCURRENCY: "${TEXTBOOK_KG_WORKER_CONCURRENCY:-1}"
+      TEXTBOOK_KG_REQUIRE_JOB_MODELS: "true"
+    volumes:
+      - ./runtime:/var/lib/textbook-kg
+      - ./runtime/embedding-cache:/opt/textbook-kg/vendor/concept_kg_module/.runtime_cache
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      mineru-api:
+        condition: service_healthy

@@ -1,0 +1,112 @@
+﻿llm:
+  backend: openai_compatible
+  base_url: https://api.siliconflow.cn/v1
+  api_key_env: SILICONFLOW_API_KEY
+  model: zai-org/GLM-5.2
+  temperature: 0
+  max_tokens: 4096
+  timeout_seconds: 600
+  retries: 3
+  max_content_chars: 12000
+  retry_content_chars:
+    - 8000
+    - 5000
+    - 3000
+  max_entities_per_node: 30
+  max_relations_per_node: 30
+  response_format_json: true
+
+extraction:
+  pipeline: hierarchical
+  include_structural_nodes: true
+  include_paragraph_nodes: true
+  paragraph_min_chars: 80
+  semantic_chunk_chars: 10000
+  semantic_chunk_min_chars: 800
+  semantic_chunk_overlap_chars: 0
+  max_nodes: 0
+
+chapter_completion:
+  enabled: true
+  max_candidate_pairs_per_chapter: 200
+  max_relations_per_chapter: 40
+  max_context_chars: 30000
+
+output:
+  create_run_subdir: true
+  run_dir_template: "{book_title}_{timestamp}"
+  timestamp_format: "%Y%m%d_%H%M%S"
+  book_title_max_chars: 80
+  run_dir_max_chars: 128
+
+cleaning:
+  drop_invalid_types: true
+  drop_empty_definitions: false
+  require_relation_evidence: true
+  drop_self_relations: true
+  drop_ellipsis_evidence: false
+
+merging:
+  embedding_backend: openai_compatible
+  similarity_threshold: 0.84
+  lexical_similarity_threshold: 0.55
+  exact_name_merge: true
+  merge_same_type_only: false
+
+embedding:
+  base_url: https://api.siliconflow.cn/v1
+  api_key_env: SILICONFLOW_API_KEY
+  model: BAAI/bge-large-zh-v1.5
+  encoding_format: base64
+  timeout_seconds: 120
+  retries: 5
+  batch_size: 4
+  max_input_tokens: 480
+  cache_dir: .runtime_cache/embedding_vectors
+
+visualization:
+  max_nodes: 30
+
+neo4j:
+  enabled: false
+  uri_env: NEO4J_URI
+  user_env: NEO4J_USERNAME
+  password_env: NEO4J_PASSWORD
+  database: neo4j
+  create_constraints: true
+  batch_size: 200
+  export_payload: true
+
+inference:
+  enabled: true
+  transitive_closure:
+    enabled: true
+    relation_types:
+      - is_a
+      - part_of
+      - consists_of
+      - instance_of
+      - prerequisite_of
+      - causes
+    cross_type_rules:
+      - source: instance_of
+        follow: is_a
+  reverse_completion:
+    enabled: true
+    relation_types:
+      - is_a
+      - part_of
+      - consists_of
+      - instance_of
+      - prerequisite_of
+      - causes
+      - affects
+      - derived_from
+      - used_for
+      - compared_with
+      - evaluated_by
+      - implemented_by
+    reverse_map:
+      part_of: consists_of
+      consists_of: part_of
+      compared_with: compared_with

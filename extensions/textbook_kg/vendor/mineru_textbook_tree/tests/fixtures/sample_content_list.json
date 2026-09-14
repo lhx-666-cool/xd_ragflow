@@ -1,0 +1,73 @@
+[
+  {
+    "type": "text",
+    "text": "目录",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "第1章 绪论 ............ 1",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "1.1 什么是语言学 ............ 3",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "1.2 研究方法 ............ 8",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "第2章 语音 ............ 15",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "2.1 元音 ............ 17",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "2.2 辅音 ............ 21",
+    "page_idx": 1
+  },
+  {
+    "type": "text",
+    "text": "第1章 绪论",
+    "text_level": 1,
+    "page_idx": 8
+  },
+  {
+    "type": "text",
+    "text": "1.1 什么是语言学",
+    "text_level": 2,
+    "page_idx": 10
+  },
+  {
+    "type": "text",
+    "text": "1.2 研究方法",
+    "text_level": 2,
+    "page_idx": 15
+  },
+  {
+    "type": "text",
+    "text": "第2章 语音",
+    "text_level": 1,
+    "page_idx": 22
+  },
+  {
+    "type": "text",
+    "text": "2.1 元音",
+    "text_level": 2,
+    "page_idx": 24
+  },
+  {
+    "type": "text",
+    "text": "2.2 辅音",
+    "text_level": 2,
+    "page_idx": 28
+  }
+]

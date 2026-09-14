@@ -1,0 +1,46 @@
+llm:
+  backend: mock
+  max_content_chars: 12000
+  max_entities_per_node: 30
+  max_relations_per_node: 30
+
+extraction:
+  pipeline: hierarchical
+  include_structural_nodes: true
+  include_paragraph_nodes: true
+  paragraph_min_chars: 20
+  semantic_chunk_chars: 1000
+  semantic_chunk_min_chars: 20
+  semantic_chunk_overlap_chars: 0
+  max_nodes: 0
+
+chapter_completion:
+  enabled: false
+
+output:
+  create_run_subdir: false
+
+cleaning:
+  drop_invalid_types: true
+  drop_empty_definitions: false
+  require_relation_evidence: true
+  drop_self_relations: true
+  drop_ellipsis_evidence: false
+
+merging:
+  embedding_backend: hashing
+  embedding_dim: 64
+  similarity_threshold: 0.99
+  lexical_similarity_threshold: 0.6
+  exact_name_merge: true
+  merge_same_type_only: false
+
+visualization:
+  max_nodes: 30
+
+neo4j:
+  enabled: false
+  export_payload: true
+
+inference:
+  enabled: false

@@ -96,6 +96,21 @@ export default {
   parse: `${api_host}/document/parse`,
   setMeta: `${api_host}/document/set_meta`,
   get_dataset_filter: `${api_host}/document/filter`,
+  textbook_kg_submit: `${api_host}/textbook_kg/submit`,
+  textbook_kg_job: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}`,
+  textbook_kg_result: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}/result`,
+  textbook_kg_retry: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}/retry`,
+  textbook_kg_cancel: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}/cancel`,
+  textbook_kg_import: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}/import`,
+  textbook_kg_bundle: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}/bundle`,
+  textbook_kg_tree: (documentId: string) =>
+    `${api_host}/textbook_kg/job/${documentId}/tree`,
 
   // chat
   setDialog: `${api_host}/dialog/set`,

@@ -79,9 +79,7 @@ export default function Dataset() {
   return (
     <>
       <div className="absolute top-4 right-5">
-        <Generate
-          disabled={isReadOnly || !(dataSetData.chunk_num > 0)}
-        />
+        <Generate disabled={isReadOnly || !(dataSetData.chunk_num > 0)} />
       </div>
       <section className="p-5 min-w-[880px]">
         <ListFilterBar
@@ -116,10 +114,7 @@ export default function Dataset() {
                 {t('fileManager.uploadFile')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={isReadOnly}
-                onClick={showCreateModal}
-              >
+              <DropdownMenuItem disabled={isReadOnly} onClick={showCreateModal}>
                 {t('knowledgeDetails.emptyFiles')}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -143,6 +138,7 @@ export default function Dataset() {
             onOk={onDocumentUploadOk}
             loading={documentUploadLoading}
             showParseOnCreation
+            showTextbookKgOption
           ></FileUploadDialog>
         )}
         {createVisible && !isReadOnly && (

@@ -1,0 +1,19 @@
+defaults:
+  output_root: ./output
+  chunk_size: 20
+  lang: ch
+  backend: pipeline
+  force_ocr: false
+
+books:
+  - id: sample_book
+    pdf: C:/path/to/your/book.pdf
+    book_title: 示例教材
+    toc_pages: 7-10
+    page_offset: 11
+
+  - id: sample_book_2
+    pdf: C:/path/to/another/book.pdf
+    book_title: 第二本教材
+    toc_pages: 12-18
+    page_offset: 15
