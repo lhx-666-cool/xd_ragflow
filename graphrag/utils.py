@@ -92,7 +92,7 @@ def dict_has_keys_with_types(data: dict, expected_fields: list[tuple[str, type]]
 
 def get_llm_cache(llmnm, txt, history, genconf):
     hasher = xxhash.xxh64()
-    hasher.update((str(llmnm)+str(txt)+str(history)+str(genconf)).encode("utf-8"))
+    hasher.update((str(llmnm) + str(txt) + str(history) + str(genconf)).encode("utf-8"))
 
     k = hasher.hexdigest()
     bin = REDIS_CONN.get(k)
@@ -103,7 +103,7 @@ def get_llm_cache(llmnm, txt, history, genconf):
 
 def set_llm_cache(llmnm, txt, v, history, genconf):
     hasher = xxhash.xxh64()
-    hasher.update((str(llmnm)+str(txt)+str(history)+str(genconf)).encode("utf-8"))
+    hasher.update((str(llmnm) + str(txt) + str(history) + str(genconf)).encode("utf-8"))
     k = hasher.hexdigest()
     REDIS_CONN.set(k, v.encode("utf-8"), 24 * 3600)
 
@@ -475,10 +475,27 @@ async def set_graph(tenant_id: str, kb_id: str, embd_mdl, graph: nx.Graph, chang
             }
         )
 
+    async def _safe_chunk(label: str, coro) -> None:
+        # 单个实体/关系的嵌入失败（如瞬时网络超时、限流）不应中止整个导入；
+        # 对瞬时错误先重试一次，仍失败则记录并跳过该 chunk。
+        for attempt in (1, 2):
+            try:
+                await coro
+                return
+            except Exception:
+                if attempt == 2:
+                    logging.getLogger(__name__).exception("Graph chunk embedding failed for %s after retry; skipped.", label)
+                else:
+                    await trio.sleep(2)
+
     async with trio.open_nursery() as nursery:
         for ii, node in enumerate(change.added_updated_nodes):
             node_attrs = graph.nodes[node]
-            nursery.start_soon(graph_node_to_chunk, kb_id, embd_mdl, node, node_attrs, chunks)
+            nursery.start_soon(
+                _safe_chunk,
+                f"node:{node}",
+                graph_node_to_chunk(kb_id, embd_mdl, node, node_attrs, chunks),
+            )
             if ii % 100 == 9 and callback:
                 callback(msg=f"Get embedding of nodes: {ii}/{len(change.added_updated_nodes)}")
 
@@ -488,7 +505,11 @@ async def set_graph(tenant_id: str, kb_id: str, embd_mdl, graph: nx.Graph, chang
             if not edge_attrs:
                 # added_updated_edges could record a non-existing edge if both from_node and to_node participate in nodes merging.
                 continue
-            nursery.start_soon(graph_edge_to_chunk, kb_id, embd_mdl, from_node, to_node, edge_attrs, chunks)
+            nursery.start_soon(
+                _safe_chunk,
+                f"edge:{from_node}->{to_node}",
+                graph_edge_to_chunk(kb_id, embd_mdl, from_node, to_node, edge_attrs, chunks),
+            )
             if ii % 100 == 9 and callback:
                 callback(msg=f"Get embedding of edges: {ii}/{len(change.added_updated_edges)}")
 

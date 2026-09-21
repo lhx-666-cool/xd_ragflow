@@ -120,13 +120,7 @@ def _check_kg_configuration(settings: ServiceSettings) -> tuple[bool, str]:
     if llm_backend == "openai_compatible":
         required_env.add(str(llm_settings.get("api_key_env") or "OPENAI_API_KEY"))
     if embedding_backend == "openai_compatible":
-        required_env.add(
-            str(
-                embedding_settings.get("api_key_env")
-                or llm_settings.get("api_key_env")
-                or "OPENAI_API_KEY"
-            )
-        )
+        required_env.add(str(embedding_settings.get("api_key_env") or llm_settings.get("api_key_env") or "OPENAI_API_KEY"))
     missing = sorted(name for name in required_env if name and not os.getenv(name))
     if missing:
         return False, f"Missing environment variables: {', '.join(missing)}"
@@ -139,6 +133,15 @@ MODEL_RUNTIME_FIELDS = (
     "llm_model",
     "embedding_model",
 )
+
+
+def _allowed_gateway_hosts() -> set[str]:
+    # 默认仅允许 loopback；桥接网络部署可通过 TEXTBOOK_KG_ALLOWED_GATEWAY_HOSTS
+    # 显式放行 compose 服务名等可信主机（逗号分隔）。
+    hosts = {"127.0.0.1", "localhost", "::1"}
+    extra = os.getenv("TEXTBOOK_KG_ALLOWED_GATEWAY_HOSTS", "")
+    hosts.update(host.strip().lower() for host in extra.split(",") if host.strip())
+    return hosts
 
 
 def _model_runtime_config(
@@ -163,7 +166,7 @@ def _model_runtime_config(
         parsed = urlsplit(values["model_gateway_url"])
         if (
             parsed.scheme not in {"http", "https"}
-            or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}
+            or parsed.hostname not in _allowed_gateway_hosts()
             or parsed.username is not None
             or parsed.password is not None
             or bool(parsed.query)

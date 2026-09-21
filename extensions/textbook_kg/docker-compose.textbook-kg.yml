@@ -6,7 +6,11 @@ services:
     image: ragflow/mineru-api:3.4.4-pipeline
     container_name: mineru-api
     restart: unless-stopped
-    network_mode: host
+    # 挂在 ragflow 网络上，供 textbook-kg-api 以服务名访问；不再占用宿主机网络
+    networks:
+      - ragflow
+    # 容器内必须绑定 0.0.0.0，否则桥接网络里其他容器无法访问
+    command: ["--host", "0.0.0.0", "--port", "8886"]
     environment:
       CUDA_VISIBLE_DEVICES: "0"
       MINERU_MODEL_SOURCE: modelscope
@@ -29,17 +33,23 @@ services:
     container_name: textbook-kg-api
     restart: unless-stopped
     user: "${TEXTBOOK_KG_UID:-1000}:${TEXTBOOK_KG_GID:-1000}"
-    network_mode: host
+    networks:
+      - ragflow
     env_file:
       - .env.sidecar
     environment:
-      TEXTBOOK_KG_HOST: 127.0.0.1
+      # 在容器自己的网络命名空间内监听所有网卡，ragflow 容器经服务名访问
+      TEXTBOOK_KG_HOST: 0.0.0.0
       TEXTBOOK_KG_PORT: "8890"
       TEXTBOOK_KG_JOB_ROOT: /var/lib/textbook-kg
       TEXTBOOK_KG_CONCEPT_ROOT: /opt/textbook-kg/vendor/concept_kg_module
       TEXTBOOK_KG_MINERU_ROOT: /opt/textbook-kg/vendor/mineru_textbook_tree
       TEXTBOOK_KG_WORKER_CONCURRENCY: "${TEXTBOOK_KG_WORKER_CONCURRENCY:-1}"
       TEXTBOOK_KG_REQUIRE_JOB_MODELS: "true"
+      # 覆盖 .env.sidecar 里的 127.0.0.1:8886，改为 compose 服务名
+      MINERU_API_URL: http://mineru-api:8886
+      # 允许 model_gateway_url 指向 compose 网络里的 RAGFlow 服务名
+      TEXTBOOK_KG_ALLOWED_GATEWAY_HOSTS: "ragflow-cpu"
     volumes:
       - ./runtime:/var/lib/textbook-kg
       - ./runtime/embedding-cache:/opt/textbook-kg/vendor/concept_kg_module/.runtime_cache
@@ -53,3 +63,8 @@ services:
     depends_on:
       mineru-api:
         condition: service_healthy
+
+networks:
+  ragflow:
+    # 与 docker-compose-base.yml 中定义的同名网络合并
+    external: false

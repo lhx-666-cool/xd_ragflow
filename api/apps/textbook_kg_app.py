@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import base64
 import ipaddress
+import logging
 import os
 import struct
+import threading
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -50,12 +53,48 @@ def _error(message: str, code: Any = None):
     )
 
 
+_import_lock = threading.Lock()
+_import_threads: dict[str, threading.Thread] = {}
+
+
+def _run_import(doc, service: "TextbookKgService", result: dict[str, Any], *, force: bool) -> None:
+    try:
+        _import_graph_if_needed(doc, service, result, force=force)
+    except Exception:  # noqa: BLE001 — 记录完整堆栈后吞掉：失败详情已由 _import_graph_if_needed 写入文档元数据，线程本身不允许带异常退出
+        logging.exception("Textbook KG graph import thread failed for doc %s", doc.id)
+    finally:
+        with _import_lock:
+            _import_threads.pop(str(doc.id), None)
+
+
+def _spawn_import(doc, service: "TextbookKgService", result: dict[str, Any], *, force: bool = False) -> None:
+    # GraphRAG 导入需要对数千个实体/关系逐一算嵌入，耗时可达十几分钟。
+    # 不能在状态轮询请求里同步执行：每次轮询都会再拉起一次导入，多个导入
+    # 并发争抢嵌入配额并反复清写图谱，导致导入永远无法完成。因此固定放到
+    # 后台线程，且同一文档同一时刻只允许一个导入线程。
+    with _import_lock:
+        existing = _import_threads.get(str(doc.id))
+        if existing is not None and existing.is_alive():
+            return
+        thread = threading.Thread(
+            target=_run_import,
+            args=(doc, service, result),
+            kwargs={"force": force},
+            name=f"textbook-kg-import-{doc.id}",
+            daemon=True,
+        )
+        _import_threads[str(doc.id)] = thread
+        thread.start()
+
+
 def _document_or_response(doc_id: str):
-    if not DocumentService.accessible(doc_id, current_user.id):
-        return None, _error("No authorization.", settings.RetCode.AUTHENTICATION_ERROR)
+    # 先查存在再查权限：已删除的文档会命中 "Document not found"，
+    # 而 accessible() 对不存在的文档同样返回 False，先查权限会误报为无权限。
     exists, doc = DocumentService.get_by_id(doc_id)
     if not exists:
         return None, _error("Document not found.", settings.RetCode.DATA_ERROR)
+    if not DocumentService.accessible(doc_id, current_user.id):
+        return None, _error("No authorization.", settings.RetCode.AUTHENTICATION_ERROR)
     return doc, None
 
 
@@ -73,11 +112,7 @@ def _save_job(doc, payload: dict[str, Any], result: dict[str, Any] | None = None
             textbook[key] = payload[key]
     textbook["synced_at"] = _now()
     if result:
-        textbook["result"] = {
-            key: result.get(key)
-            for key in ("entity_count", "relation_count", "chunk_count", "book_title")
-            if key in result
-        }
+        textbook["result"] = {key: result.get(key) for key in ("entity_count", "relation_count", "chunk_count", "book_title") if key in result}
     meta["textbook_kg"] = textbook
     DocumentService.update_by_id(doc.id, {"meta_fields": meta})
     doc.meta_fields = meta
@@ -121,11 +156,7 @@ def _import_graph_if_needed(
     try:
         expected_sha256 = _adapter_sha256(result)
         current = _metadata(doc).get("textbook_kg", {}).get("graphrag", {})
-        if (
-            isinstance(current, dict)
-            and current.get("status") == "imported"
-            and current.get("artifact_sha256") == expected_sha256
-        ):
+        if isinstance(current, dict) and current.get("status") == "imported" and current.get("artifact_sha256") == expected_sha256:
             return _metadata(doc)["textbook_kg"]
         if isinstance(current, dict) and current.get("status") == "imported" and not force:
             return _save_graphrag(
@@ -163,10 +194,13 @@ def _import_graph_if_needed(
     except (TextbookKgError, TextbookKgGraphRagError) as exc:
         return _save_graphrag(doc, status="failed", error=str(exc)[:500])
     except Exception as exc:  # noqa: BLE001
+        # ExceptionGroup 等聚合异常只记类名会丢失子异常，展开子异常并保留堆栈尾部
+        children = getattr(exc, "exceptions", ())
+        detail = "; ".join(f"{type(e).__name__}: {e}" for e in children) or repr(exc)
         return _save_graphrag(
             doc,
             status="failed",
-            error=f"Native GraphRAG import failed ({exc.__class__.__name__}).",
+            error=f"Native GraphRAG import failed: {detail[:600]} | {traceback.format_exc()[-600:]}",
         )
 
 
@@ -283,7 +317,7 @@ def _sync_job(doc, service: TextbookKgService) -> dict[str, Any]:
         result = job.get("result") if isinstance(job.get("result"), dict) else service.get_result(job_id)
     textbook = _save_job(doc, job, result)
     if result:
-        textbook = _import_graph_if_needed(doc, service, result)
+        _spawn_import(doc, service, result)
     return textbook
 
 
@@ -317,8 +351,8 @@ def job_result(doc_id: str):
             raise TextbookKgError("This document has no textbook KG job.")
         result = service.get_result(job_id)
         _save_job(doc, {"job_id": job_id, "status": "succeeded", "stage": "completed", "progress": 1.0}, result)
-        textbook = _import_graph_if_needed(doc, service, result)
-        return get_json_result(data={**result, "graphrag": textbook.get("graphrag")})
+        _spawn_import(doc, service, result)
+        return get_json_result(data={**result, "graphrag": _metadata(doc).get("textbook_kg", {}).get("graphrag")})
     except TextbookKgError as exc:
         return _error(str(exc))
 
@@ -372,7 +406,8 @@ def import_graph(doc_id: str):
         if job.get("status") != "succeeded":
             raise TextbookKgError("The Textbook KG job has not succeeded")
         result = job.get("result") if isinstance(job.get("result"), dict) else service.get_result(job_id)
-        return get_json_result(data=_import_graph_if_needed(doc, service, result, force=True))
+        _spawn_import(doc, service, result, force=True)
+        return get_json_result(data=_metadata(doc).get("textbook_kg", {}))
     except TextbookKgError as exc:
         return _error(str(exc))
 
@@ -425,17 +460,29 @@ def _gateway_error(message: str, status_code: int = 400):
     return flask.jsonify({"error": {"message": message, "type": "textbook_kg_gateway_error"}}), status_code
 
 
+def _gateway_source_allowed(remote_address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    # 默认仅允许 loopback；容器化部署的 Sidecar 经 compose 网络访问时，
+    # 可通过 TEXTBOOK_KG_GATEWAY_ALLOWED_SOURCE_CIDRS 显式放行可信网段（逗号分隔）。
+    if remote_address.is_loopback:
+        return True
+    configured = os.getenv("TEXTBOOK_KG_GATEWAY_ALLOWED_SOURCE_CIDRS", "")
+    for cidr in (part.strip() for part in configured.split(",")):
+        if not cidr:
+            continue
+        try:
+            if remote_address in ipaddress.ip_network(cidr, strict=False):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
 def _gateway_claims() -> dict[str, Any]:
     try:
         remote_address = ipaddress.ip_address(request.remote_addr or "")
     except ValueError as exc:
         raise TextbookKgError("The model gateway is only available locally", 403) from exc
-    if (
-        not remote_address.is_loopback
-        or request.headers.get("Origin")
-        or request.headers.get("X-Forwarded-For")
-        or request.headers.get("Forwarded")
-    ):
+    if not _gateway_source_allowed(remote_address) or request.headers.get("Origin") or request.headers.get("X-Forwarded-For") or request.headers.get("Forwarded"):
         raise TextbookKgError("The model gateway is only available to local Sidecar requests", 403)
     scheme, _, token = (request.headers.get("Authorization") or "").partition(" ")
     if scheme.lower() != "bearer" or not token:
@@ -500,11 +547,7 @@ def model_gateway_chat():
             return _gateway_error("max_tokens must be an integer", 422)
         if max_tokens < 1 or max_tokens > 32_768:
             return _gateway_error("max_tokens is outside the gateway limit", 422)
-    generation_config = {
-        key: payload[key]
-        for key in ("temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty")
-        if key in payload
-    }
+    generation_config = {key: payload[key] for key in ("temperature", "top_p", "max_tokens", "frequency_penalty", "presence_penalty") if key in payload}
     try:
         model = LLMBundle(tenant.id, LLMType.CHAT, llm_name=llm_id, lang=kb.language or "Chinese")
         answer = model.chat("\n".join(system_parts), history, generation_config)

@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+# ARG PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

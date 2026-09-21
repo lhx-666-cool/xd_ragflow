@@ -1,5 +1,7 @@
 include:
   - ./docker-compose-base.yml
+  # textbook KG sidecar（mineru-api + textbook-kg-api，host 网络，占用 GPU 0）
+  - ../extensions/textbook_kg/docker-compose.textbook-kg.yml
 # To ensure that the container processes the locally modified `service_conf.yaml.template` instead of the one included in its image, you need to mount the local `service_conf.yaml.template` to the container.
 services:
   ragflow-cpu:
